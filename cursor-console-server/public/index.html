@@ -303,12 +303,56 @@
       flex-direction: column;
     }
 
-    .tab-tracking-mode {
-      margin-bottom: 10px;
+    .tab-tracking-toggle {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
     }
 
-    .tab-tracking-mode label {
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 24px;
       margin-right: 10px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 24px;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+
+    input:checked + .toggle-slider {
+      background-color: #2196F3;
+    }
+
+    input:checked + .toggle-slider:before {
+      transform: translateX(26px);
     }
 
     .tab-list {
@@ -331,6 +375,175 @@
       .status-panel {
         grid-template-columns: 1fr;
       }
+    }
+
+    /* Card styles */
+    .card {
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    
+    .card-header {
+      background-color: #f5f5f5;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .card-header h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+    }
+    
+    .card-actions {
+      display: flex;
+      align-items: center;
+    }
+    
+    .card-body {
+      padding: 20px;
+    }
+    
+    .info-text {
+      font-size: 14px;
+      color: #666;
+      font-style: italic;
+    }
+    
+    /* Tab tracking toggle */
+    .tab-tracking-toggle-container {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 20px;
+      margin-right: 10px;
+    }
+    
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+    }
+    
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: .4s;
+    }
+    
+    input:checked + .slider {
+      background-color: #4CAF50;
+    }
+    
+    input:focus + .slider {
+      box-shadow: 0 0 1px #4CAF50;
+    }
+    
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+    
+    .slider.round {
+      border-radius: 20px;
+    }
+    
+    .slider.round:before {
+      border-radius: 50%;
+    }
+    
+    /* Tab list */
+    .tab-list {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+    }
+    
+    .no-tabs {
+      padding: 20px;
+      text-align: center;
+      color: #888;
+      font-style: italic;
+    }
+
+    /* Debug panel styles */
+    .debug-panel {
+      background-color: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 15px;
+      margin-bottom: 20px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    .debug-panel h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .debug-entry {
+      margin-bottom: 5px;
+      padding: 3px 0;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .debug-entry.error {
+      color: #F44336;
+    }
+    
+    .debug-entry.warning {
+      color: #FF9800;
+    }
+    
+    .debug-entry.success {
+      color: #4CAF50;
+    }
+    
+    .debug-entry.info {
+      color: #2196F3;
+    }
+    
+    .debug-toggle {
+      cursor: pointer;
+      font-size: 12px;
+      color: #666;
+      text-decoration: underline;
     }
   </style>
 </head>
@@ -356,9 +569,14 @@
       </div>
 
       <div class="status-card">
-        <h2>Browser Clients</h2>
-        <div id="browserClientCount" class="client-count">0</div>
-        <div class="status-text">connected clients</div>
+        <h2>Extension Status</h2>
+        <div class="status-indicator">
+          <div id="extensionStatusDot" class="status-dot offline"></div>
+          <span id="extensionStatusText" class="status-text">Disconnected</span>
+        </div>
+        <div class="last-updated">
+          Connected: <span id="browserClientCount" class="client-count">0</span> tabs
+        </div>
       </div>
 
       <div class="status-card">
@@ -399,28 +617,23 @@
       </div>
     </div>
 
-    <div class="tab-tracking-container">
-      <div class="tab-tracking-header">
-        <h3 class="tab-tracking-title">Tab Tracking</h3>
-        <div class="tab-tracking-actions">
-          <button id="refreshTabsBtn" class="button secondary">Refresh Tabs</button>
+    <div class="card">
+      <div class="card-header">
+        <h2>Browser Tabs</h2>
+        <div class="card-actions">
+          <span class="info-text">Tabs are automatically synchronized</span>
         </div>
       </div>
-      <div class="tab-tracking-content">
-        <div class="tab-tracking-mode">
-          <label>
-            <input type="radio" name="trackingMode" value="all" checked> 
-            Track All Tabs
+      <div class="card-body">
+        <div class="tab-tracking-toggle-container">
+          <label class="switch">
+            <input type="checkbox" id="tabTrackingToggle" checked>
+            <span class="slider round"></span>
           </label>
-          <label>
-            <input type="radio" name="trackingMode" value="selected"> 
-            Track Selected Tabs Only
-          </label>
+          <span>Track all tabs</span>
         </div>
-        <div class="tab-list" id="tabList">
-          <div class="tab-item" style="justify-content: center; color: #888;">
-            Loading tabs...
-          </div>
+        <div id="tabList" class="tab-list">
+          <div class="no-tabs">No tabs available. Connect the browser extension to see tabs.</div>
         </div>
       </div>
     </div>
@@ -457,14 +670,24 @@
         Last updated: <span id="lastUpdated">-</span>
       </div>
     </div>
+
+    <!-- Add debug panel after the footer -->
+    <div class="debug-panel" id="debugPanel" style="display: none;">
+      <h3>
+        Connection Debug
+        <span class="debug-toggle" id="clearDebugBtn">Clear</span>
+      </h3>
+      <div id="debugEntries"></div>
+    </div>
   </div>
 
   <script>
     // DOM elements
     const serverStatusDot = document.getElementById('serverStatusDot');
     const serverStatusText = document.getElementById('serverStatusText');
+    const extensionStatusDot = document.getElementById('extensionStatusDot');
+    const extensionStatusText = document.getElementById('extensionStatusText');
     const serverUptime = document.getElementById('serverUptime');
-    const browserClientCount = document.getElementById('browserClientCount');
     const cursorClientCount = document.getElementById('cursorClientCount');
     const logCount = document.getElementById('logCount');
     const logsTableBody = document.getElementById('logsTableBody');
@@ -472,9 +695,7 @@
     const refreshBtn = document.getElementById('refreshBtn');
     const clearLogsBtn = document.getElementById('clearLogsBtn');
     const autoScrollToggle = document.getElementById('autoScrollToggle');
-    const refreshTabsBtn = document.getElementById('refreshTabsBtn');
     const tabList = document.getElementById('tabList');
-    const trackingModeRadios = document.querySelectorAll('input[name="trackingMode"]');
     const browserExtensionUrl = document.getElementById('browserExtensionUrl');
     const cursorIdeUrl = document.getElementById('cursorIdeUrl');
     const serverPort = document.getElementById('serverPort');
@@ -487,6 +708,17 @@
     let trackingMode = 'all';
     let trackedTabs = {};
     let currentPort = window.location.port || '3000';
+    let wsConnection = null;
+
+    // Debug panel elements
+    const debugPanel = document.getElementById('debugPanel');
+    const debugEntries = document.getElementById('debugEntries');
+    const clearDebugBtn = document.getElementById('clearDebugBtn');
+    
+    // Debug logging
+    let debugEnabled = false;
+    let debugEntryCount = 0;
+    const MAX_DEBUG_ENTRIES = 100;
 
     // Initialize connection URLs
     function updateConnectionUrls() {
@@ -518,37 +750,68 @@
 
     // Update server status
     function updateServerStatus() {
+      addDebugEntry('Fetching server status via HTTP', 'info');
       fetch('/api/status')
         .then(response => {
           if (!response.ok) {
             throw new Error('Server not responding');
           }
+          
           return response.json();
         })
         .then(data => {
-          // Update status indicators
-          serverStatusDot.classList.remove('offline');
-          serverStatusDot.classList.add('online');
-          serverStatusText.textContent = 'Online';
+          addDebugEntry(`Received HTTP status: Browser: ${data.browserClients}, Cursor: ${data.cursorClients}`, 'info');
+          
+          // Update server status indicators
+          if (data.serverStatus === 'online') {
+            serverStatusDot.classList.remove('offline');
+            serverStatusDot.classList.add('online');
+            serverStatusText.textContent = 'Online';
+          } else {
+            serverStatusDot.classList.remove('online');
+            serverStatusDot.classList.add('offline');
+            serverStatusText.textContent = 'Offline';
+          }
+          
+          // Update extension status indicators
+          if (data.browserClients > 0) {
+            extensionStatusDot.classList.remove('offline');
+            extensionStatusDot.classList.add('online');
+            extensionStatusText.textContent = 'Connected';
+            addDebugEntry('Extension status updated to Connected via HTTP', 'success');
+          } else {
+            extensionStatusDot.classList.remove('online');
+            extensionStatusDot.classList.add('offline');
+            extensionStatusText.textContent = 'Disconnected';
+            addDebugEntry('Extension status updated to Disconnected via HTTP', 'warning');
+          }
           
           // Update client counts
-          browserClientCount.textContent = data.browserClients;
+          document.getElementById('browserClientCount').textContent = data.browserClients;
           cursorClientCount.textContent = data.cursorClients;
-          logCount.textContent = data.logs;
+          logCount.textContent = data.logs || 0;
           
-          // Update uptime
-          serverUptime.textContent = formatDuration(data.uptime);
+          // Update server uptime if available
+          if (data.uptime) {
+            serverUptime.textContent = formatDuration(data.uptime);
+          }
           
           // Update last updated timestamp
           lastUpdated.textContent = new Date().toLocaleString();
         })
         .catch(error => {
           console.error('Error fetching server status:', error);
+          addDebugEntry(`Error fetching status: ${error.message}`, 'error');
           
-          // Update status indicators
+          // Update server status indicators to show offline
           serverStatusDot.classList.remove('online');
           serverStatusDot.classList.add('offline');
           serverStatusText.textContent = 'Offline';
+          
+          // Update extension status indicators to show offline
+          extensionStatusDot.classList.remove('online');
+          extensionStatusDot.classList.add('offline');
+          extensionStatusText.textContent = 'Disconnected';
           
           // Update last updated timestamp
           lastUpdated.textContent = new Date().toLocaleString();
@@ -760,214 +1023,323 @@
 
     // Update tab list
     function updateTabList() {
-      if (tabs.length === 0) {
-        tabList.innerHTML = `
-          <div class="tab-item" style="justify-content: center; color: #888;">
-            No tabs found
-          </div>
-        `;
+      const tabList = document.getElementById('tabList');
+      const isTrackingAll = document.getElementById('tabTrackingToggle').checked;
+      
+      if (!tabs || tabs.length === 0) {
+        tabList.innerHTML = '<div class="no-tabs-message">No tabs found</div>';
         return;
       }
       
-      // Clear tab list
+      // Clear existing list
       tabList.innerHTML = '';
       
-      // Add tabs to list
+      // Add each tab to the list
       tabs.forEach(tab => {
-        const item = document.createElement('div');
-        item.className = 'tab-item';
-        item.dataset.tabId = tab.id;
+        const tabItem = document.createElement('div');
+        tabItem.className = 'tab-item';
+        tabItem.style.display = 'flex';
+        tabItem.style.alignItems = 'center';
+        tabItem.style.padding = '10px';
+        tabItem.style.borderBottom = '1px solid #eee';
         
-        // Tab favicon
-        const icon = document.createElement('img');
-        icon.className = 'tab-icon';
-        icon.src = tab.favIconUrl || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHJ4PSIzIiBmaWxsPSIjRTBFMEUwIi8+PHBhdGggZD0iTTQgOEgxMiIgc3Ryb2tlPSIjNjY2NjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxwYXRoIGQ9Ik04IDRMOCA5IiBzdHJva2U9IiM2NjY2NjYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+';
-        icon.style.width = '16px';
-        icon.style.height = '16px';
-        icon.style.marginRight = '8px';
+        // Favicon
+        const favicon = document.createElement('img');
+        favicon.src = tab.favIconUrl || 'default-favicon.png';
+        favicon.alt = '';
+        favicon.style.width = '16px';
+        favicon.style.height = '16px';
+        favicon.style.marginRight = '10px';
+        favicon.style.flexShrink = '0';
         
         // Tab info container
-        const info = document.createElement('div');
-        info.style.flexGrow = '1';
-        info.style.overflow = 'hidden';
+        const tabInfo = document.createElement('div');
+        tabInfo.style.flexGrow = '1';
+        tabInfo.style.overflow = 'hidden';
+        tabInfo.style.marginRight = '10px';
         
         // Tab title
         const title = document.createElement('div');
-        title.style.fontSize = '14px';
-        title.style.fontWeight = '500';
+        title.textContent = tab.title;
+        title.style.fontWeight = 'bold';
         title.style.whiteSpace = 'nowrap';
         title.style.overflow = 'hidden';
         title.style.textOverflow = 'ellipsis';
-        title.textContent = tab.title || 'Untitled Tab';
         
         // Tab URL
         const url = document.createElement('div');
-        url.style.fontSize = '12px';
+        url.textContent = tab.url;
+        url.style.fontSize = '0.8em';
         url.style.color = '#666';
         url.style.whiteSpace = 'nowrap';
         url.style.overflow = 'hidden';
         url.style.textOverflow = 'ellipsis';
-        url.textContent = tab.url || '';
         
-        // Toggle switch
-        const toggleContainer = document.createElement('label');
-        toggleContainer.className = 'toggle';
-        toggleContainer.style.position = 'relative';
-        toggleContainer.style.display = 'inline-block';
-        toggleContainer.style.width = '40px';
-        toggleContainer.style.height = '20px';
-        toggleContainer.style.marginLeft = '8px';
+        // Status indicator
+        const statusIndicator = document.createElement('div');
+        statusIndicator.className = 'status-indicator';
+        statusIndicator.style.width = '10px';
+        statusIndicator.style.height = '10px';
+        statusIndicator.style.borderRadius = '50%';
+        statusIndicator.style.marginLeft = '10px';
+        statusIndicator.style.flexShrink = '0';
         
-        const toggleInput = document.createElement('input');
-        toggleInput.type = 'checkbox';
-        toggleInput.style.opacity = '0';
-        toggleInput.style.width = '0';
-        toggleInput.style.height = '0';
-        toggleInput.checked = trackedTabs[tab.id] !== false; // Track by default unless explicitly set to false
-        toggleInput.disabled = trackingMode === 'all'; // Disable toggles if tracking all tabs
-        
-        toggleInput.addEventListener('change', () => {
-          updateTabTracking(tab.id, toggleInput.checked);
-        });
-        
-        const toggleSlider = document.createElement('span');
-        toggleSlider.style.position = 'absolute';
-        toggleSlider.style.cursor = 'pointer';
-        toggleSlider.style.top = '0';
-        toggleSlider.style.left = '0';
-        toggleSlider.style.right = '0';
-        toggleSlider.style.bottom = '0';
-        toggleSlider.style.backgroundColor = '#ccc';
-        toggleSlider.style.transition = '.4s';
-        toggleSlider.style.borderRadius = '20px';
-        
-        // Create the slider button
-        const sliderButton = document.createElement('span');
-        sliderButton.style.position = 'absolute';
-        sliderButton.style.content = '""';
-        sliderButton.style.height = '16px';
-        sliderButton.style.width = '16px';
-        sliderButton.style.left = '2px';
-        sliderButton.style.bottom = '2px';
-        sliderButton.style.backgroundColor = 'white';
-        sliderButton.style.transition = '.4s';
-        sliderButton.style.borderRadius = '50%';
-        
-        // Add the slider button to the slider
-        toggleSlider.appendChild(sliderButton);
-        
-        // Style for checked state
-        if (toggleInput.checked) {
-          toggleSlider.style.backgroundColor = '#4CAF50';
-          sliderButton.style.transform = 'translateX(20px)';
+        // Set status color based on tracking
+        if (isTrackingAll) {
+          statusIndicator.style.backgroundColor = '#4CAF50'; // Green for tracked
+          statusIndicator.title = 'This tab is being tracked';
+        } else {
+          statusIndicator.style.backgroundColor = '#ccc'; // Gray for not tracked
+          statusIndicator.title = 'This tab is not being tracked';
         }
         
-        // Update slider when input changes
-        toggleInput.addEventListener('change', () => {
-          if (toggleInput.checked) {
-            toggleSlider.style.backgroundColor = '#4CAF50';
-            sliderButton.style.transform = 'translateX(20px)';
-          } else {
-            toggleSlider.style.backgroundColor = '#ccc';
-            sliderButton.style.transform = 'translateX(0)';
-          }
-        });
+        // Assemble the tab item
+        tabInfo.appendChild(title);
+        tabInfo.appendChild(url);
+        tabItem.appendChild(favicon);
+        tabItem.appendChild(tabInfo);
+        tabItem.appendChild(statusIndicator);
         
-        // Assemble the elements
-        toggleContainer.appendChild(toggleInput);
-        toggleContainer.appendChild(toggleSlider);
-        
-        info.appendChild(title);
-        info.appendChild(url);
-        
-        item.appendChild(icon);
-        item.appendChild(info);
-        item.appendChild(toggleContainer);
-        
-        tabList.appendChild(item);
+        tabList.appendChild(tabItem);
       });
     }
 
-    // Update tab tracking
-    function updateTabTracking(tabId, isTracked) {
-      // Update local state
-      trackedTabs[tabId] = isTracked;
+    // Tab tracking toggle
+    const tabTrackingToggle = document.getElementById('tabTrackingToggle');
+    tabTrackingToggle.addEventListener('change', function() {
+      const trackingMode = this.checked ? 'all' : 'selected';
       
-      // Send update to server
+      // Update UI to reflect the new tracking mode
+      const toggleSlider = this.nextElementSibling;
+      if (this.checked) {
+        toggleSlider.style.backgroundColor = '#4CAF50';
+      } else {
+        toggleSlider.style.backgroundColor = '#ccc';
+      }
+      
+      // Update the tab list to show the new tracking status
+      updateTabList();
+      
+      // Send the new tracking mode to the server
       fetch('/api/tabs/settings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          trackingMode,
-          trackedTabs
+          trackingMode: trackingMode,
+          trackedTabs: {}
         })
       })
-        .then(response => {
-          if (!response.ok) {
-            throw new Error('Failed to update tab tracking settings');
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          console.log('Tab tracking settings updated successfully');
+          
+          // Show a notification
+          showNotification(
+            this.checked ? 'All tabs are now being tracked' : 'Tab tracking has been disabled',
+            this.checked ? 'success' : 'warning'
+          );
+        } else {
+          console.error('Failed to update tab tracking settings:', data.message);
+          showNotification('Failed to update tab tracking settings', 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Error updating tab tracking settings:', error);
+        showNotification('Error updating tab tracking settings', 'error');
+      });
+    });
+
+    // Set up WebSocket for real-time updates
+    function setupWebSocket() {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}?clientType=viewer`;
+      
+      addDebugEntry(`Connecting to WebSocket: ${wsUrl}`, 'info');
+      
+      const ws = new WebSocket(wsUrl);
+      
+      ws.onopen = () => {
+        console.log('Connected to server via WebSocket');
+        addDebugEntry('WebSocket connection established', 'success');
+        
+        // Store the WebSocket connection
+        wsConnection = ws;
+        
+        // Update connection status indicator
+        if (serverStatusDot && serverStatusText) {
+          serverStatusDot.classList.remove('offline');
+          serverStatusDot.classList.add('online');
+          serverStatusText.textContent = 'Online';
+          addDebugEntry('Server status updated to Online', 'info');
+        }
+      };
+      
+      ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          addDebugEntry(`Received message: ${message.type}`, 'info');
+          
+          if (message.type === 'console_log') {
+            // Add new log
+            logs.push(message.data);
+            updateLogsTable();
+            logCount.textContent = logs.length;
+            addDebugEntry(`Added console log: ${message.data.type} from ${message.data.url.substring(0, 30)}...`, 'info');
+          } else if (message.type === 'status_update') {
+            // Update status - this is now event-driven
+            addDebugEntry(`Status update: Browser: ${message.browserClients}, Cursor: ${message.cursorClients}, Viewer: ${message.viewerClients}`, 'info');
+            
+            cursorClientCount.textContent = message.cursorClients;
+            const browserClients = message.browserClients || 0;
+            document.getElementById('browserClientCount').textContent = browserClients;
+            
+            // Update server status indicator
+            if (message.serverStatus === 'online') {
+              serverStatusDot.classList.remove('offline');
+              serverStatusDot.classList.add('online');
+              serverStatusText.textContent = 'Online';
+              addDebugEntry('Server status updated to Online', 'info');
+            } else {
+              serverStatusDot.classList.remove('online');
+              serverStatusDot.classList.add('offline');
+              serverStatusText.textContent = 'Offline';
+              addDebugEntry('Server status updated to Offline', 'warning');
+            }
+            
+            // Update extension status indicator
+            if (browserClients > 0) {
+              extensionStatusDot.classList.remove('offline');
+              extensionStatusDot.classList.add('online');
+              extensionStatusText.textContent = 'Connected';
+              addDebugEntry('Extension status updated to Connected', 'success');
+            } else {
+              extensionStatusDot.classList.remove('online');
+              extensionStatusDot.classList.add('offline');
+              extensionStatusText.textContent = 'Disconnected';
+              addDebugEntry('Extension status updated to Disconnected', 'warning');
+            }
+            
+            // Update server uptime if available
+            if (message.uptime) {
+              serverUptime.textContent = formatDuration(message.uptime);
+            }
+            
+            // Update last updated timestamp
+            lastUpdated.textContent = new Date().toLocaleString();
+          } else if (message.type === 'logs_cleared') {
+            // Clear logs
+            logs = [];
+            updateLogsTable();
+            logCount.textContent = '0';
+            addDebugEntry('Logs cleared', 'info');
+          } else if (message.type === 'tabs_update') {
+            // Update tabs - this is now event-driven
+            addDebugEntry(`Received tabs update with ${message.tabs.length} tabs`, 'info');
+            tabs = message.tabs;
+            updateTabList();
+          } else if (message.type === 'tab_settings_update') {
+            // Update tab settings
+            addDebugEntry(`Received tab settings update: ${message.trackingMode}`, 'info');
+            trackingMode = message.trackingMode;
+            trackedTabs = message.trackedTabs;
+            
+            // Update tab list
+            updateTabList();
+          } else if (message.type === 'welcome') {
+            addDebugEntry(`Received welcome message: ${message.message}`, 'success');
+            // Server acknowledged our connection - we're connected
+            serverStatusDot.classList.remove('offline');
+            serverStatusDot.classList.add('online');
+            serverStatusText.textContent = 'Online';
+            
+            // Send a status request immediately after welcome
+            setTimeout(() => {
+              if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'request_status' }));
+                addDebugEntry('Sent status request after welcome', 'info');
+              }
+            }, 500);
           }
-          return response.json();
-        })
-        .then(data => {
-          if (!data.success) {
-            throw new Error(data.message);
-          }
-        })
-        .catch(error => {
-          console.error('Error updating tab tracking settings:', error);
-          alert('Failed to update tab tracking settings: ' + error.message);
-        });
+        } catch (error) {
+          console.error('Error processing WebSocket message:', error);
+          addDebugEntry(`Error processing message: ${error.message}`, 'error');
+        }
+      };
+      
+      ws.onclose = (event) => {
+        console.log('WebSocket connection closed, attempting to reconnect...');
+        addDebugEntry(`WebSocket connection closed. Code: ${event.code}, Reason: ${event.reason || 'No reason'}, Clean: ${event.wasClean}`, 'warning');
+        
+        // Update server connection status indicator
+        serverStatusDot.classList.remove('online');
+        serverStatusDot.classList.add('offline');
+        serverStatusText.textContent = 'Offline';
+        
+        // When server is offline, extension must be disconnected too
+        extensionStatusDot.classList.remove('online');
+        extensionStatusDot.classList.add('offline');
+        extensionStatusText.textContent = 'Disconnected';
+        
+        // Clear the WebSocket reference
+        wsConnection = null;
+        
+        // Attempt to reconnect
+        setTimeout(setupWebSocket, 3000);
+      };
+      
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        addDebugEntry('WebSocket error occurred', 'error');
+        
+        // Update connection status indicator
+        if (serverStatusDot && serverStatusText) {
+          serverStatusDot.classList.remove('online');
+          serverStatusDot.classList.add('offline');
+          serverStatusText.textContent = 'Error';
+        }
+      };
     }
 
-    // Update tracking mode
-    function updateTrackingMode(mode) {
-      // Update local state
-      trackingMode = mode;
-      
-      // Update UI
-      document.querySelector(`input[name="trackingMode"][value="${trackingMode}"]`).checked = true;
-      
-      // Enable/disable tab toggles based on tracking mode
-      const toggleInputs = tabList.querySelectorAll('input[type="checkbox"]');
-      toggleInputs.forEach(input => {
-        input.disabled = trackingMode === 'all';
-      });
-      
-      // Send update to server
-      fetch('/api/tabs/settings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          trackingMode,
-          trackedTabs
-        })
-      })
-        .then(response => {
-          if (!response.ok) {
-            throw new Error('Failed to update tracking mode');
-          }
-          return response.json();
-        })
-        .then(data => {
-          if (!data.success) {
-            throw new Error(data.message);
-          }
-        })
-        .catch(error => {
-          console.error('Error updating tracking mode:', error);
-          alert('Failed to update tracking mode: ' + error.message);
-        });
+    // Request status update from server
+    function requestStatusUpdate() {
+      if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+        wsConnection.send(JSON.stringify({
+          type: 'request_status'
+        }));
+        addDebugEntry('Sent status request', 'info');
+      } else {
+        // Fallback to HTTP if WebSocket is not available
+        addDebugEntry('WebSocket not available, using HTTP for status update', 'warning');
+        updateServerStatus();
+      }
+    }
+
+    // Request tabs from server
+    function requestTabs() {
+      // This function is kept for internal use only
+      if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+        console.log('Tabs are automatically synchronized - no manual request needed');
+      } else {
+        // Fallback to HTTP if WebSocket is not available
+        fetchTabs();
+      }
     }
 
     // Refresh data
     function refreshData() {
-      updateServerStatus();
-      fetchLogs();
-      fetchTabs();
+      // Use WebSocket for real-time updates if available
+      if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+        requestStatusUpdate();
+        // No need to manually request tabs - they are automatically synchronized
+      } else {
+        // Fallback to HTTP
+        updateServerStatus();
+        fetchLogs();
+        fetchTabs();
+      }
     }
 
     // Clear logs
@@ -1002,95 +1374,104 @@
     refreshBtn.addEventListener('click', refreshData);
     clearLogsBtn.addEventListener('click', clearLogs);
     autoScrollToggle.addEventListener('click', toggleAutoScroll);
-    refreshTabsBtn.addEventListener('click', fetchTabs);
     
     // Add event listeners for tracking mode radios
-    trackingModeRadios.forEach(radio => {
-      radio.addEventListener('change', () => {
-        if (radio.checked) {
-          updateTrackingMode(radio.value);
-        }
-      });
+    document.querySelectorAll('input[name="trackingMode"]').forEach(radio => {
+      radio.parentElement.remove();
     });
 
-    // Set up WebSocket for real-time updates
-    function setupWebSocket() {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}?clientType=viewer`;
+    // Show notification
+    function showNotification(message, type = 'info') {
+      const notification = document.createElement('div');
+      notification.className = 'notification';
+      notification.style.position = 'fixed';
+      notification.style.bottom = '20px';
+      notification.style.right = '20px';
+      notification.style.padding = '12px 20px';
+      notification.style.borderRadius = '4px';
+      notification.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.1)';
+      notification.style.zIndex = '1000';
+      notification.style.maxWidth = '300px';
+      notification.style.animation = 'fadeIn 0.3s, fadeOut 0.3s 2.7s';
+      notification.style.fontWeight = '500';
       
-      const ws = new WebSocket(wsUrl);
+      // Set colors based on type
+      if (type === 'success') {
+        notification.style.backgroundColor = '#E8F5E9';
+        notification.style.color = '#4CAF50';
+        notification.style.borderLeft = '4px solid #4CAF50';
+      } else if (type === 'error') {
+        notification.style.backgroundColor = '#FFEBEE';
+        notification.style.color = '#F44336';
+        notification.style.borderLeft = '4px solid #F44336';
+      } else if (type === 'warning') {
+        notification.style.backgroundColor = '#FFF8E1';
+        notification.style.color = '#FF9800';
+        notification.style.borderLeft = '4px solid #FF9800';
+      } else {
+        notification.style.backgroundColor = '#E3F2FD';
+        notification.style.color = '#2196F3';
+        notification.style.borderLeft = '4px solid #2196F3';
+      }
       
-      ws.onopen = () => {
-        console.log('Connected to server via WebSocket');
-        // Update connection status indicator
-        if (serverStatusDot && serverStatusText) {
-          serverStatusDot.classList.remove('offline');
-          serverStatusDot.classList.add('online');
-          serverStatusText.textContent = 'Online';
+      notification.textContent = message;
+      document.body.appendChild(notification);
+      
+      // Add CSS animation
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
         }
-      };
-      
-      ws.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data);
-          
-          if (message.type === 'console_log') {
-            // Add new log
-            logs.push(message.data);
-            updateLogsTable();
-            logCount.textContent = logs.length;
-          } else if (message.type === 'status_update') {
-            // Update status
-            browserClientCount.textContent = message.browserClients;
-            cursorClientCount.textContent = message.cursorClients;
-            serverUptime.textContent = formatDuration(message.uptime);
-          } else if (message.type === 'logs_cleared') {
-            // Clear logs
-            logs = [];
-            updateLogsTable();
-            logCount.textContent = '0';
-          } else if (message.type === 'tabs_update') {
-            // Update tabs
-            console.log('Received tabs update:', message.tabs.length, 'tabs');
-            tabs = message.tabs;
-            updateTabList();
-          } else if (message.type === 'tab_settings_update') {
-            // Update tab settings
-            console.log('Received tab settings update:', message.trackingMode);
-            trackingMode = message.trackingMode;
-            trackedTabs = message.trackedTabs;
-            
-            // Update tracking mode radios
-            document.querySelector(`input[name="trackingMode"][value="${trackingMode}"]`).checked = true;
-            
-            // Update tab list
-            updateTabList();
-          }
-        } catch (error) {
-          console.error('Error processing WebSocket message:', error);
+        @keyframes fadeOut {
+          from { opacity: 1; transform: translateY(0); }
+          to { opacity: 0; transform: translateY(20px); }
         }
-      };
+      `;
+      document.head.appendChild(style);
       
-      ws.onclose = () => {
-        console.log('WebSocket connection closed, attempting to reconnect...');
-        // Update connection status indicator
-        if (serverStatusDot && serverStatusText) {
-          serverStatusDot.classList.remove('online');
-          serverStatusDot.classList.add('offline');
-          serverStatusText.textContent = 'Offline';
-        }
-        setTimeout(setupWebSocket, 3000);
-      };
+      // Remove notification after 3 seconds
+      setTimeout(() => {
+        document.body.removeChild(notification);
+      }, 3000);
+    }
+
+    // Add debug toggle to refresh button
+    refreshBtn.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+      debugEnabled = !debugEnabled;
+      debugPanel.style.display = debugEnabled ? 'block' : 'none';
+      addDebugEntry(debugEnabled ? 'Debug mode enabled' : 'Debug mode disabled', 'info');
+    });
+    
+    // Clear debug entries
+    clearDebugBtn.addEventListener('click', function() {
+      debugEntries.innerHTML = '';
+      debugEntryCount = 0;
+      addDebugEntry('Debug log cleared', 'info');
+    });
+    
+    // Add debug entry
+    function addDebugEntry(message, type = 'normal') {
+      if (!debugEnabled) return;
       
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        // Update connection status indicator
-        if (serverStatusDot && serverStatusText) {
-          serverStatusDot.classList.remove('online');
-          serverStatusDot.classList.add('offline');
-          serverStatusText.textContent = 'Error';
+      const entry = document.createElement('div');
+      entry.className = `debug-entry ${type}`;
+      
+      const timestamp = new Date().toLocaleTimeString() + '.' + new Date().getMilliseconds().toString().padStart(3, '0');
+      entry.textContent = `[${timestamp}] ${message}`;
+      
+      debugEntries.insertBefore(entry, debugEntries.firstChild);
+      debugEntryCount++;
+      
+      // Limit the number of entries
+      if (debugEntryCount > MAX_DEBUG_ENTRIES) {
+        if (debugEntries.lastChild) {
+          debugEntries.removeChild(debugEntries.lastChild);
         }
-      };
+        debugEntryCount = MAX_DEBUG_ENTRIES;
+      }
     }
 
     // Initialize
@@ -1105,18 +1486,37 @@
         if (newPort && !isNaN(newPort) && newPort > 0 && newPort <= 65535) {
           currentPort = newPort;
           updateConnectionUrls();
-          alert(`Port updated to ${newPort}. You need to restart the server manually for this change to take effect.`);
+          showNotification(`Port updated to ${newPort}. You need to restart the server manually for this change to take effect.`, 'info');
         } else {
-          alert('Please enter a valid port number (1-65535).');
+          showNotification('Please enter a valid port number (1-65535).', 'error');
           serverPort.value = currentPort;
         }
       });
       
+      // Initial data fetch (will be updated by events after connection)
       refreshData();
+      
+      // Set up WebSocket for event-driven updates
       setupWebSocket();
       
-      // Refresh data every 30 seconds
-      setInterval(refreshData, 30000);
+      // Show notification about automatic tab synchronization
+      setTimeout(() => {
+        showNotification('Tabs are now automatically synchronized with the browser extension', 'info');
+      }, 1000);
+      
+      // Refresh data periodically as a fallback only
+      setInterval(refreshData, 60000); // Every minute as a fallback
+      
+      // Check WebSocket connection every 15 seconds and reconnect if needed
+      setInterval(() => {
+        if (!wsConnection || wsConnection.readyState !== WebSocket.OPEN) {
+          addDebugEntry('WebSocket not connected, attempting to reconnect...', 'warning');
+          setupWebSocket();
+        } else {
+          // Send a ping to keep the connection alive
+          requestStatusUpdate();
+        }
+      }, 15000);
     });
   </script>
 </body>

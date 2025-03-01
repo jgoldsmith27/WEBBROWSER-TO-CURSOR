@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WebSocket Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    #status {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+    }
+    .connected {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .disconnected {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    .connecting {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+    button {
+      padding: 10px 15px;
+      margin: 5px;
+      background-color: #4285F4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #3367D6;
+    }
+    pre {
+      background-color: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      overflow: auto;
+      max-height: 300px;
+    }
+  </style>
+</head>
+<body>
+  <h1>WebSocket Connection Test</h1>
+  
+  <div id="status" class="disconnected">Disconnected</div>
+  
+  <div>
+    <button id="connectBtn">Connect</button>
+    <button id="disconnectBtn" disabled>Disconnect</button>
+    <button id="sendTabsBtn" disabled>Send Test Tabs</button>
+    <button id="sendLogBtn" disabled>Send Test Log</button>
+  </div>
+  
+  <h2>Messages</h2>
+  <pre id="messages"></pre>
+  
+  <script>
+    // DOM Elements
+    const statusEl = document.getElementById('status');
+    const connectBtn = document.getElementById('connectBtn');
+    const disconnectBtn = document.getElementById('disconnectBtn');
+    const sendTabsBtn = document.getElementById('sendTabsBtn');
+    const sendLogBtn = document.getElementById('sendLogBtn');
+    const messagesEl = document.getElementById('messages');
+    
+    // WebSocket connection
+    let ws = null;
+    
+    // Add message to the log
+    function log(message) {
+      const timestamp = new Date().toISOString();
+      messagesEl.textContent = `[${timestamp}] ${message}\n` + messagesEl.textContent;
+    }
+    
+    // Update connection status
+    function updateStatus(status) {
+      statusEl.textContent = status;
+      statusEl.className = status.toLowerCase();
+      
+      if (status === 'Connected') {
+        connectBtn.disabled = true;
+        disconnectBtn.disabled = false;
+        sendTabsBtn.disabled = false;
+        sendLogBtn.disabled = false;
+      } else if (status === 'Disconnected') {
+        connectBtn.disabled = false;
+        disconnectBtn.disabled = true;
+        sendTabsBtn.disabled = true;
+        sendLogBtn.disabled = true;
+      } else {
+        connectBtn.disabled = true;
+        disconnectBtn.disabled = true;
+        sendTabsBtn.disabled = true;
+        sendLogBtn.disabled = true;
+      }
+    }
+    
+    // Connect to WebSocket server
+    function connect() {
+      updateStatus('Connecting');
+      
+      // Create WebSocket connection with clientType=browser
+      ws = new WebSocket('ws://localhost:3000?clientType=browser');
+      
+      // Connection opened
+      ws.addEventListener('open', (event) => {
+        updateStatus('Connected');
+        log('Connected to server');
+      });
+      
+      // Listen for messages
+      ws.addEventListener('message', (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          log(`Received message: ${JSON.stringify(message, null, 2)}`);
+        } catch (e) {
+          log(`Received non-JSON message: ${event.data}`);
+        }
+      });
+      
+      // Connection closed
+      ws.addEventListener('close', (event) => {
+        updateStatus('Disconnected');
+        log(`Connection closed: ${event.code} - ${event.reason || 'No reason provided'}`);
+        ws = null;
+      });
+      
+      // Connection error
+      ws.addEventListener('error', (error) => {
+        log(`WebSocket error: ${error}`);
+      });
+    }
+    
+    // Disconnect from server
+    function disconnect() {
+      if (ws) {
+        ws.close();
+        ws = null;
+        updateStatus('Disconnected');
+        log('Disconnected from server');
+      }
+    }
+    
+    // Send test tabs
+    function sendTestTabs() {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        const tabsMessage = {
+          type: 'tabs_update',
+          tabs: [
+            {
+              id: 1,
+              title: 'Test Tab',
+              url: 'https://example.com',
+              favIconUrl: 'https://example.com/favicon.ico',
+              isTracked: true
+            }
+          ]
+        };
+        
+        ws.send(JSON.stringify(tabsMessage));
+        log(`Sent tabs update: ${JSON.stringify(tabsMessage, null, 2)}`);
+      } else {
+        log('Cannot send tabs: WebSocket not connected');
+      }
+    }
+    
+    // Send test log
+    function sendTestLog() {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        const logMessage = {
+          type: 'console_log',
+          data: {
+            type: 'log',
+            timestamp: new Date().toISOString(),
+            message: 'This is a test log message from the test page',
+            stackTrace: 'Test stack trace',
+            url: window.location.href,
+            tabId: 1
+          }
+        };
+        
+        ws.send(JSON.stringify(logMessage));
+        log(`Sent log message: ${JSON.stringify(logMessage, null, 2)}`);
+      } else {
+        log('Cannot send log: WebSocket not connected');
+      }
+    }
+    
+    // Add event listeners
+    connectBtn.addEventListener('click', connect);
+    disconnectBtn.addEventListener('click', disconnect);
+    sendTabsBtn.addEventListener('click', sendTestTabs);
+    sendLogBtn.addEventListener('click', sendTestLog);
+    
+    // Initial status
+    updateStatus('Disconnected');
+    log('WebSocket test page loaded');
+  </script>
+</body>
+</html> 

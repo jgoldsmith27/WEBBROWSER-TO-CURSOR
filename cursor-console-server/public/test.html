@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Console Log Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    button {
+      padding: 10px 15px;
+      margin: 5px;
+      background-color: #4285F4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #3367D6;
+    }
+    pre {
+      background-color: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      overflow: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>Console Log Test</h1>
+  <p>This page generates console logs to test the Browser Console Capture extension.</p>
+  
+  <div>
+    <button onclick="logMessage('log')">Log Message</button>
+    <button onclick="logMessage('error')">Error Message</button>
+    <button onclick="logMessage('warn')">Warning Message</button>
+    <button onclick="logMessage('info')">Info Message</button>
+    <button onclick="logMessage('debug')">Debug Message</button>
+    <button onclick="logObject()">Log Object</button>
+    <button onclick="logError()">Throw Error</button>
+  </div>
+  
+  <h2>Log History</h2>
+  <pre id="logHistory"></pre>
+  
+  <script>
+    // Keep a history of logs
+    const logHistory = [];
+    const logHistoryElement = document.getElementById('logHistory');
+    
+    // Function to update log history display
+    function updateLogHistory() {
+      logHistoryElement.textContent = logHistory.join('\n');
+    }
+    
+    // Function to add to log history
+    function addToLogHistory(type, message) {
+      const timestamp = new Date().toISOString();
+      logHistory.push(`[${timestamp}] [${type.toUpperCase()}] ${message}`);
+      if (logHistory.length > 100) {
+        logHistory.shift(); // Keep only the most recent 100 logs
+      }
+      updateLogHistory();
+    }
+    
+    // Function to log a message
+    function logMessage(type) {
+      const message = `This is a ${type} message at ${new Date().toLocaleTimeString()}`;
+      
+      switch(type) {
+        case 'log':
+          console.log(message);
+          break;
+        case 'error':
+          console.error(message);
+          break;
+        case 'warn':
+          console.warn(message);
+          break;
+        case 'info':
+          console.info(message);
+          break;
+        case 'debug':
+          console.debug(message);
+          break;
+      }
+      
+      addToLogHistory(type, message);
+    }
+    
+    // Function to log an object
+    function logObject() {
+      const obj = {
+        name: 'Test Object',
+        timestamp: new Date(),
+        nested: {
+          value: 42,
+          array: [1, 2, 3, 4, 5]
+        }
+      };
+      
+      console.log('Logging an object:', obj);
+      addToLogHistory('log', `Logging an object: ${JSON.stringify(obj)}`);
+    }
+    
+    // Function to throw an error
+    function logError() {
+      try {
+        throw new Error('This is a test error');
+      } catch (error) {
+        console.error('Caught an error:', error);
+        addToLogHistory('error', `Caught an error: ${error.message}`);
+      }
+    }
+    
+    // Log a message when the page loads
+    window.addEventListener('load', () => {
+      console.log('Page loaded at', new Date().toLocaleTimeString());
+      addToLogHistory('log', `Page loaded at ${new Date().toLocaleTimeString()}`);
+    });
+    
+    // Log a message every 5 seconds
+    setInterval(() => {
+      console.log('Automatic log at', new Date().toLocaleTimeString());
+      addToLogHistory('log', `Automatic log at ${new Date().toLocaleTimeString()}`);
+    }, 5000);
+  </script>
+</body>
+</html> 

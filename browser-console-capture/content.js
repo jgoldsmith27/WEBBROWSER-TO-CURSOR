@@ -4,7 +4,21 @@ const originalConsole = {
   error: console.error,
   warn: console.warn,
   info: console.info,
-  debug: console.debug
+  debug: console.debug,
+  trace: console.trace,
+  assert: console.assert,
+  dir: console.dir,
+  dirxml: console.dirxml,
+  group: console.group,
+  groupCollapsed: console.groupCollapsed,
+  groupEnd: console.groupEnd,
+  time: console.time,
+  timeEnd: console.timeEnd,
+  timeLog: console.timeLog,
+  table: console.table,
+  count: console.count,
+  countReset: console.countReset,
+  clear: console.clear
 };
 
 // Array to store captured logs
@@ -13,6 +27,7 @@ let capturedLogs = [];
 // Tab tracking settings
 let trackingMode = 'all'; // 'all' or 'selected'
 let isTabTracked = true;  // Whether this specific tab is tracked
+let currentTabId = null;  // Store the current tab ID
 
 // Flag to control capturing
 let isCapturing = true;
@@ -65,7 +80,6 @@ function recordNavigation(url) {
   chrome.runtime.sendMessage({
     action: 'navigationEvent',
     url,
-    tabId: chrome.runtime.id, // This is not the tab ID, but it helps identify the context
     timestamp: getTimestamp()
   }).catch(() => {
     // Ignore errors
@@ -75,10 +89,13 @@ function recordNavigation(url) {
 // Function to capture console logs
 function captureConsole(type, args) {
   // Skip if this tab should not be captured
-  if (!shouldCaptureTab()) return;
+  if (!shouldCaptureTab()) {
+    originalConsole.log('[DEBUG] Skipping capture for this tab - not tracked');
+    return;
+  }
   
   // Skip our own debug messages to avoid infinite loops
-  if (args[0] === '[DEBUG]') return;
+  if (args.length > 0 && args[0] === '[DEBUG]') return;
   
   const timestamp = getTimestamp();
   const stackTrace = getStackTrace();
@@ -87,7 +104,20 @@ function captureConsole(type, args) {
   const serializedArgs = Array.from(args).map(arg => {
     try {
       if (typeof arg === 'object' && arg !== null) {
-        return JSON.stringify(arg);
+        if (arg instanceof Error) {
+          // Special handling for Error objects
+          return `${arg.name}: ${arg.message}\n${arg.stack || ''}`;
+        }
+        return JSON.stringify(arg, (key, value) => {
+          if (value instanceof Error) {
+            return {
+              name: value.name,
+              message: value.message,
+              stack: value.stack
+            };
+          }
+          return value;
+        }, 2);
       }
       return String(arg);
     } catch (e) {
@@ -102,6 +132,7 @@ function captureConsole(type, args) {
     message: serializedArgs.join(' '),
     stackTrace,
     url: window.location.href,
+    tabId: currentTabId,
     navigationHistory: navigationHistory.slice(0, 3) // Include recent navigation history
   };
 
@@ -150,28 +181,103 @@ console.debug = function() {
   originalConsole.debug.apply(console, arguments);
 };
 
+console.trace = function() {
+  captureConsole('trace', arguments);
+  originalConsole.trace.apply(console, arguments);
+};
+
+console.assert = function() {
+  captureConsole('assert', arguments);
+  originalConsole.assert.apply(console, arguments);
+};
+
+console.dir = function() {
+  captureConsole('dir', arguments);
+  originalConsole.dir.apply(console, arguments);
+};
+
+console.dirxml = function() {
+  captureConsole('dirxml', arguments);
+  originalConsole.dirxml.apply(console, arguments);
+};
+
+console.group = function() {
+  captureConsole('group', arguments);
+  originalConsole.group.apply(console, arguments);
+};
+
+console.groupCollapsed = function() {
+  captureConsole('groupCollapsed', arguments);
+  originalConsole.groupCollapsed.apply(console, arguments);
+};
+
+console.groupEnd = function() {
+  captureConsole('groupEnd', arguments);
+  originalConsole.groupEnd.apply(console, arguments);
+};
+
+console.time = function() {
+  captureConsole('time', arguments);
+  originalConsole.time.apply(console, arguments);
+};
+
+console.timeEnd = function() {
+  captureConsole('timeEnd', arguments);
+  originalConsole.timeEnd.apply(console, arguments);
+};
+
+console.timeLog = function() {
+  captureConsole('timeLog', arguments);
+  originalConsole.timeLog.apply(console, arguments);
+};
+
+console.table = function() {
+  captureConsole('table', arguments);
+  originalConsole.table.apply(console, arguments);
+};
+
+console.count = function() {
+  captureConsole('count', arguments);
+  originalConsole.count.apply(console, arguments);
+};
+
+console.countReset = function() {
+  captureConsole('countReset', arguments);
+  originalConsole.countReset.apply(console, arguments);
+};
+
+console.clear = function() {
+  captureConsole('clear', arguments);
+  originalConsole.clear.apply(console, arguments);
+};
+
 // Load tab tracking settings
 function loadTabTrackingSettings() {
-  chrome.storage.local.get(['trackingMode', 'trackedTabs', 'isCapturing'], (result) => {
-    trackingMode = result.trackingMode || 'all';
-    isCapturing = result.isCapturing !== false;
-    
-    // Check if this tab is tracked
-    if (result.trackedTabs) {
-      // We need to get the current tab ID
-      chrome.runtime.sendMessage({ action: 'getCurrentTabId' }, (response) => {
-        if (response && response.tabId) {
-          isTabTracked = result.trackedTabs[response.tabId] !== false;
-          
-          originalConsole.log('[DEBUG] Tab tracking settings loaded:', 
-            'mode =', trackingMode, 
-            'tabId =', response.tabId,
-            'isTracked =', isTabTracked,
-            'isCapturing =', isCapturing);
+  // First get the current tab ID
+  chrome.runtime.sendMessage({ action: 'getCurrentTabId' }, (response) => {
+    if (response && response.tabId) {
+      currentTabId = response.tabId;
+      
+      // Now get the tracking settings
+      chrome.storage.local.get(['trackingMode', 'trackedTabs', 'isCapturing'], (result) => {
+        trackingMode = result.trackingMode || 'all';
+        isCapturing = result.isCapturing !== false;
+        
+        // Check if this tab is tracked
+        if (result.trackedTabs && currentTabId) {
+          isTabTracked = result.trackedTabs[currentTabId] !== false;
+        } else {
+          isTabTracked = true;
         }
+        
+        originalConsole.log('[DEBUG] Tab tracking settings loaded:', 
+          'mode =', trackingMode, 
+          'tabId =', currentTabId,
+          'isTracked =', isTabTracked,
+          'isCapturing =', isCapturing);
       });
     } else {
-      isTabTracked = true;
+      originalConsole.error('[DEBUG] Could not get current tab ID');
     }
   });
 }
@@ -191,33 +297,47 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse({ success: true });
   } else if (message.action === 'updateTabTracking') {
     isTabTracked = message.isTracked;
+    originalConsole.log('[DEBUG] Tab tracking updated:', isTabTracked);
     sendResponse({ success: true });
   } else if (message.action === 'updateTrackingMode') {
     trackingMode = message.trackingMode;
+    originalConsole.log('[DEBUG] Tracking mode updated:', trackingMode);
+    sendResponse({ success: true });
+  } else if (message.action === 'reloadSettings') {
+    loadTabTrackingSettings();
     sendResponse({ success: true });
   }
   return true; // Required for async response
 });
 
-// Capture uncaught errors
+// Capture uncaught exceptions
 window.addEventListener('error', function(event) {
-  captureConsole('uncaught', [
-    `Uncaught ${event.error?.name || 'Error'}: ${event.message} at ${event.filename}:${event.lineno}:${event.colno}`
-  ]);
-});
+  const errorObj = {
+    message: event.message,
+    filename: event.filename,
+    lineno: event.lineno,
+    colno: event.colno,
+    error: event.error
+  };
+  
+  captureConsole('uncaught-exception', [errorObj]);
+  
+  // Don't prevent the default handling
+  return false;
+}, true);
 
 // Capture unhandled promise rejections
 window.addEventListener('unhandledrejection', function(event) {
-  let message = 'Unhandled Promise Rejection';
-  if (event.reason) {
-    if (typeof event.reason === 'string') {
-      message += ': ' + event.reason;
-    } else if (event.reason.message) {
-      message += ': ' + event.reason.message;
-    }
-  }
-  captureConsole('unhandledrejection', [message]);
-});
+  const rejectionObj = {
+    reason: event.reason,
+    promise: 'Promise rejection'
+  };
+  
+  captureConsole('unhandled-rejection', [rejectionObj]);
+  
+  // Don't prevent the default handling
+  return false;
+}, true);
 
 // Track page navigations
 if (window.history && window.history.pushState) {
@@ -251,6 +371,9 @@ window.addEventListener('hashchange', function() {
 
 // Load tab tracking settings when content script is loaded
 loadTabTrackingSettings();
+
+// Periodically check tab tracking settings (every 10 seconds)
+setInterval(loadTabTrackingSettings, 10000);
 
 // Notify that the content script is loaded
 console.log('%c[Browser Console Capture] Content script loaded and capturing console logs', 'color: #4CAF50; font-weight: bold');

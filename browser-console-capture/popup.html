@@ -8,72 +8,153 @@
       padding: 15px;
       font-family: Arial, sans-serif;
     }
-    .container {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
+    
+    h1 {
+      font-size: 18px;
+      margin-top: 0;
+      margin-bottom: 15px;
     }
+    
     .status-container {
       display: flex;
       align-items: center;
-      gap: 10px;
+      margin-bottom: 15px;
     }
+    
     .status-dot {
       width: 12px;
       height: 12px;
       border-radius: 50%;
-      background-color: #F44336; /* Default red */
+      background-color: #ff4d4d;
+      margin-right: 8px;
     }
+    
     .status-dot.connected {
-      background-color: #4CAF50; /* Green when connected */
+      background-color: #4CAF50;
     }
-    .status-text {
-      font-weight: bold;
+    
+    .form-group {
+      margin-bottom: 15px;
     }
-    .input-group {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
+    
     label {
+      display: block;
+      margin-bottom: 5px;
       font-weight: bold;
     }
-    input {
+    
+    input[type="text"] {
+      width: 100%;
       padding: 8px;
+      box-sizing: border-box;
       border: 1px solid #ccc;
       border-radius: 4px;
     }
+    
     .btn {
-      padding: 8px 15px;
-      background-color: #2196F3;
+      padding: 8px 12px;
+      background-color: #4285F4;
       color: white;
       border: none;
       border-radius: 4px;
       cursor: pointer;
-      margin-top: 10px;
+      font-size: 14px;
     }
+    
     .btn:hover {
-      background-color: #0b7dda;
+      background-color: #3367D6;
+    }
+    
+    .btn:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 20px;
+      margin-right: 10px;
+    }
+    
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 20px;
+    }
+    
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    
+    input:checked + .toggle-slider {
+      background-color: #4CAF50;
+    }
+    
+    input:checked + .toggle-slider:before {
+      transform: translateX(20px);
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>Browser Console Capture</h2>
-    
-    <div class="status-container">
-      <div id="statusDot" class="status-dot"></div>
-      <span id="connectionStatus">Disconnected</span>
-    </div>
-    
-    <div class="input-group">
-      <label for="serverUrl">Server URL:</label>
-      <input type="text" id="serverUrl" placeholder="ws://localhost:3000" value="ws://localhost:3000">
-    </div>
-    
-    <button id="connectBtn" class="btn">Connect</button>
-    <button id="sendTabsBtn" class="btn">Send Tabs</button>
+  <h1>Browser Console Capture</h1>
+  
+  <div class="status-container">
+    <div id="statusDot" class="status-dot"></div>
+    <span id="connectionStatus">Disconnected</span>
   </div>
+  
+  <div class="form-group">
+    <label for="serverUrl">Server URL:</label>
+    <input type="text" id="serverUrl" placeholder="ws://localhost:3000" value="ws://localhost:3000">
+  </div>
+  
+  <div class="toggle-container">
+    <label class="toggle-switch">
+      <input type="checkbox" id="trackingModeToggle" checked>
+      <span class="toggle-slider"></span>
+    </label>
+    <span>Track All Tabs</span>
+  </div>
+  
+  <button id="connectBtn" class="btn">Connect</button>
+  <button id="sendTabsBtn" class="btn" disabled>Send Tabs</button>
+  <button id="sendTestLogBtn" class="btn" style="margin-top: 10px; background-color: #FF9800;">Send Test Log</button>
+  <button id="forceReconnectBtn" class="btn" style="margin-top: 10px; background-color: #E91E63;">Force Reconnect</button>
+  
+  <div class="debug-section" style="margin-top: 15px; border-top: 1px solid #ccc; padding-top: 10px;">
+    <h2 style="font-size: 14px; margin-bottom: 10px;">Debug Information</h2>
+    <pre id="debugInfo" style="background-color: #f5f5f5; padding: 8px; font-size: 12px; white-space: pre-wrap; word-break: break-all;">Loading debug info...</pre>
+    <button id="debugBtn" class="btn" style="margin-top: 5px; background-color: #757575;">Refresh Debug Info</button>
+  </div>
+  
   <script src="popup.js"></script>
 </body>
 </html>

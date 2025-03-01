@@ -1,0 +1,57 @@
+const WebSocket = require('ws');
+
+// Create WebSocket connection
+const ws = new WebSocket('ws://localhost:3000?clientType=browser');
+
+// Connection opened
+ws.on('open', function() {
+  console.log('Connected to server as browser client');
+  
+  // Send a test log message with the correct structure
+  const testLog = {
+    type: 'console_log',
+    data: {
+      type: 'log',
+      timestamp: new Date().toISOString(),
+      message: 'This is a test log message from the test script',
+      stackTrace: 'Test stack trace',
+      url: 'test-script://test',
+      tabId: 999
+    }
+  };
+  
+  ws.send(JSON.stringify(testLog));
+  console.log('Sent test log message');
+  
+  // Keep the connection open for a few seconds
+  setTimeout(() => {
+    ws.close();
+    console.log('Connection closed');
+    process.exit(0);
+  }, 5000);
+});
+
+// Listen for messages
+ws.on('message', function(data) {
+  try {
+    const message = JSON.parse(data);
+    console.log('Received message:', message.type);
+    console.log(JSON.stringify(message, null, 2));
+  } catch (e) {
+    console.log('Received non-JSON message:', data);
+  }
+});
+
+// Connection error
+ws.on('error', function(error) {
+  console.error('WebSocket error:', error);
+  process.exit(1);
+});
+
+// Connection closed
+ws.on('close', function(code, reason) {
+  console.log(`Connection closed: ${code} - ${reason}`);
+  process.exit(0);
+});
+
+console.log('Connecting to WebSocket server...'); 

@@ -1,45 +1,49 @@
 const ConsoleServer = require('./server');
+const fs = require('fs');
+const path = require('path');
+const net = require('net');
 
-// Get port from environment variable or use default
-const port = process.env.PORT || 3000;
+// Function to find an available port
+function findAvailablePort(startPort, callback) {
+  const server = net.createServer();
+  server.listen(startPort, () => {
+    const port = server.address().port;
+    server.close(() => callback(port));
+  });
+  
+  server.on('error', () => {
+    // Port is in use, try the next one
+    findAvailablePort(startPort + 1, callback);
+  });
+}
 
-// Create and start server
-const server = new ConsoleServer({
-  port,
+// Use a port that's unlikely to be in use
+const PORT = process.env.PORT || 3000;
+
+// Create console server - this will create its own HTTP and WebSocket servers
+const consoleServer = new ConsoleServer({
+  port: PORT,
   maxLogs: 1000
 });
 
-// Handle process termination
-process.on('SIGINT', async () => {
-  console.log('Shutting down server...');
-  await server.stop();
-  process.exit(0);
-});
+// Start the server
+consoleServer.start();
 
-process.on('SIGTERM', async () => {
-  console.log('Shutting down server...');
-  await server.stop();
-  process.exit(0);
-});
-
-// Start server
-server.start().then((port) => {
-  console.log(`
+console.log(`
 =======================================================
-🚀 Cursor Console Server is running!
-
-Server URL: http://localhost:${port}
-WebSocket URL: ws://localhost:${port}
-
-Browser clients should connect to:
-ws://localhost:${port}?clientType=browser
-
-Cursor IDE clients should connect to:
-ws://localhost:${port}?clientType=cursor
-
-API Endpoints:
-- GET /api/status - Server status
-- GET /api/logs - All captured logs
+🚀 Browser Console Capture Server running on port ${PORT}
 =======================================================
 `);
+
+// Handle process termination
+process.on('SIGINT', () => {
+  console.log('\nShutting down...');
+  consoleServer.stop();
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  console.log('\nShutting down...');
+  consoleServer.stop();
+  process.exit(0);
 }); 

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Console Error Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        button {
+            margin: 5px;
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .error-button {
+            background-color: #f44336;
+        }
+        .error-button:hover {
+            background-color: #d32f2f;
+        }
+        .warning-button {
+            background-color: #ff9800;
+        }
+        .warning-button:hover {
+            background-color: #fb8c00;
+        }
+        .info-button {
+            background-color: #2196F3;
+        }
+        .info-button:hover {
+            background-color: #1976D2;
+        }
+        h1 {
+            color: #333;
+        }
+        h2 {
+            color: #555;
+            margin-top: 20px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Console Error Test Page</h1>
+    <p>This page generates various types of console messages and errors to test the browser console capture extension.</p>
+    
+    <div class="section">
+        <h2>Basic Console Methods</h2>
+        <button onclick="console.log('This is a regular log message')">console.log</button>
+        <button class="error-button" onclick="console.error('This is an error message')">console.error</button>
+        <button class="warning-button" onclick="console.warn('This is a warning message')">console.warn</button>
+        <button class="info-button" onclick="console.info('This is an info message')">console.info</button>
+        <button onclick="console.debug('This is a debug message')">console.debug</button>
+    </div>
+    
+    <div class="section">
+        <h2>Advanced Console Methods</h2>
+        <button onclick="console.trace('This is a trace')">console.trace</button>
+        <button onclick="console.assert(false, 'This assertion failed')">console.assert</button>
+        <button onclick="consoleTable()">console.table</button>
+        <button onclick="consoleGroup()">console.group</button>
+        <button onclick="consoleTime()">console.time</button>
+        <button onclick="consoleCount()">console.count</button>
+        <button onclick="console.clear()">console.clear</button>
+    </div>
+    
+    <div class="section">
+        <h2>Complex Objects</h2>
+        <button onclick="logComplexObject()">Log Complex Object</button>
+        <button onclick="logCircularObject()">Log Circular Object</button>
+        <button onclick="logErrorObject()">Log Error Object</button>
+    </div>
+    
+    <div class="section">
+        <h2>Errors and Exceptions</h2>
+        <button class="error-button" onclick="generateReferenceError()">Reference Error</button>
+        <button class="error-button" onclick="generateTypeError()">Type Error</button>
+        <button class="error-button" onclick="generateSyntaxError()">Syntax Error</button>
+        <button class="error-button" onclick="generateRangeError()">Range Error</button>
+        <button class="error-button" onclick="generateCustomError()">Custom Error</button>
+    </div>
+    
+    <div class="section">
+        <h2>Asynchronous Errors</h2>
+        <button class="error-button" onclick="generatePromiseRejection()">Unhandled Promise Rejection</button>
+        <button class="error-button" onclick="generateAsyncError()">Async Function Error</button>
+        <button class="error-button" onclick="generateTimeoutError()">Timeout Error</button>
+    </div>
+    
+    <script>
+        // Advanced console methods
+        function consoleTable() {
+            const data = [
+                { name: 'John', age: 30, city: 'New York' },
+                { name: 'Jane', age: 25, city: 'San Francisco' },
+                { name: 'Bob', age: 35, city: 'Chicago' }
+            ];
+            console.table(data);
+        }
+        
+        function consoleGroup() {
+            console.group('Group 1');
+            console.log('This is inside group 1');
+            console.group('Nested Group');
+            console.log('This is inside a nested group');
+            console.groupEnd();
+            console.groupEnd();
+        }
+        
+        function consoleTime() {
+            console.time('Timer');
+            setTimeout(() => {
+                console.timeLog('Timer', 'Time logged');
+                setTimeout(() => {
+                    console.timeEnd('Timer');
+                }, 500);
+            }, 500);
+        }
+        
+        function consoleCount() {
+            console.count('Counter');
+            console.count('Counter');
+            console.count('Counter');
+            console.countReset('Counter');
+            console.count('Counter');
+        }
+        
+        // Complex objects
+        function logComplexObject() {
+            const complexObject = {
+                name: 'Complex Object',
+                nested: {
+                    level1: {
+                        level2: {
+                            level3: {
+                                value: 'Deep nested value'
+                            }
+                        }
+                    }
+                },
+                array: [1, 2, 3, { key: 'value' }],
+                function: function() { return 'This is a function'; },
+                date: new Date()
+            };
+            console.log('Complex object:', complexObject);
+        }
+        
+        function logCircularObject() {
+            const circularObject = { name: 'Circular Object' };
+            circularObject.self = circularObject;
+            console.log('Circular object:', circularObject);
+        }
+        
+        function logErrorObject() {
+            const error = new Error('This is an Error object');
+            console.error('Error object:', error);
+        }
+        
+        // Errors and exceptions
+        function generateReferenceError() {
+            try {
+                // ReferenceError: undefinedVariable is not defined
+                console.log(undefinedVariable);
+            } catch (error) {
+                console.error('Caught reference error:', error);
+            }
+            
+            // Uncaught reference error
+            setTimeout(() => {
+                console.log(undefinedVariable2);
+            }, 100);
+        }
+        
+        function generateTypeError() {
+            try {
+                // TypeError: null has no properties
+                const obj = null;
+                console.log(obj.property);
+            } catch (error) {
+                console.error('Caught type error:', error);
+            }
+            
+            // Uncaught type error
+            setTimeout(() => {
+                const obj2 = null;
+                console.log(obj2.property);
+            }, 100);
+        }
+        
+        function generateSyntaxError() {
+            try {
+                // SyntaxError: Unexpected token
+                eval('if (true) { console.log("Missing closing brace"');
+            } catch (error) {
+                console.error('Caught syntax error:', error);
+            }
+            
+            // Uncaught syntax error (can't be caught in try/catch)
+            setTimeout(() => {
+                eval('function() { return "Invalid function declaration"; }');
+            }, 100);
+        }
+        
+        function generateRangeError() {
+            try {
+                // RangeError: Maximum call stack size exceeded
+                function recursiveFunction() {
+                    recursiveFunction();
+                }
+                recursiveFunction();
+            } catch (error) {
+                console.error('Caught range error:', error);
+            }
+            
+            // Another range error
+            try {
+                const arr = new Array(-1);
+            } catch (error) {
+                console.error('Caught negative array size error:', error);
+            }
+        }
+        
+        function generateCustomError() {
+            class CustomError extends Error {
+                constructor(message) {
+                    super(message);
+                    this.name = 'CustomError';
+                }
+            }
+            
+            try {
+                throw new CustomError('This is a custom error');
+            } catch (error) {
+                console.error('Caught custom error:', error);
+            }
+            
+            // Uncaught custom error
+            setTimeout(() => {
+                throw new CustomError('This is an uncaught custom error');
+            }, 100);
+        }
+        
+        // Asynchronous errors
+        function generatePromiseRejection() {
+            // Handled promise rejection
+            new Promise((resolve, reject) => {
+                reject(new Error('Promise rejected'));
+            }).catch(error => {
+                console.error('Caught promise rejection:', error);
+            });
+            
+            // Unhandled promise rejection
+            setTimeout(() => {
+                new Promise((resolve, reject) => {
+                    reject(new Error('Unhandled promise rejection'));
+                });
+            }, 100);
+        }
+        
+        async function generateAsyncError() {
+            // Handled async error
+            try {
+                await Promise.reject(new Error('Async function error'));
+            } catch (error) {
+                console.error('Caught async error:', error);
+            }
+            
+            // Unhandled async error
+            setTimeout(async () => {
+                await Promise.reject(new Error('Unhandled async function error'));
+            }, 100);
+        }
+        
+        function generateTimeoutError() {
+            setTimeout(() => {
+                try {
+                    throw new Error('Error in setTimeout');
+                } catch (error) {
+                    console.error('Caught timeout error:', error);
+                }
+            }, 100);
+            
+            // Uncaught timeout error
+            setTimeout(() => {
+                throw new Error('Uncaught error in setTimeout');
+            }, 200);
+        }
+    </script>
+</body>
+</html> 
