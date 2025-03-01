@@ -1,0 +1,27 @@
+{
+  "name": "cursor-console-bridge",
+  "version": "1.0.0",
+  "description": "An application that connects to Cursor IDE and allows it to view the console output",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "keywords": [
+    "cursor",
+    "ide",
+    "console",
+    "bridge"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "node-pty": "^1.0.0",
+    "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

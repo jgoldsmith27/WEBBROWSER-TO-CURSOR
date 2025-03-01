@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Browser Console Capture</title>
+  <style>
+    body {
+      width: 300px;
+      padding: 15px;
+      font-family: Arial, sans-serif;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .status-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: #F44336; /* Default red */
+    }
+    .status-dot.connected {
+      background-color: #4CAF50; /* Green when connected */
+    }
+    .status-text {
+      font-weight: bold;
+    }
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    label {
+      font-weight: bold;
+    }
+    input {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .btn {
+      padding: 8px 15px;
+      background-color: #2196F3;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .btn:hover {
+      background-color: #0b7dda;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Browser Console Capture</h2>
+    
+    <div class="status-container">
+      <div id="statusDot" class="status-dot"></div>
+      <span id="connectionStatus">Disconnected</span>
+    </div>
+    
+    <div class="input-group">
+      <label for="serverUrl">Server URL:</label>
+      <input type="text" id="serverUrl" placeholder="ws://localhost:3000" value="ws://localhost:3000">
+    </div>
+    
+    <button id="connectBtn" class="btn">Connect</button>
+    <button id="sendTabsBtn" class="btn">Send Tabs</button>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

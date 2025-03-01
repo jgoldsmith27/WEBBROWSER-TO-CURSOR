@@ -1,0 +1,27 @@
+{
+  "name": "browser-console-to-cursor",
+  "version": "1.0.0",
+  "description": "A solution that allows Cursor IDE to view and analyze console logs from websites in real-time",
+  "main": "start.js",
+  "scripts": {
+    "start": "node start.js",
+    "install-server": "cd cursor-console-server && npm install",
+    "install-all": "npm run install-server"
+  },
+  "keywords": [
+    "cursor",
+    "ide",
+    "console",
+    "logs",
+    "browser",
+    "chrome",
+    "extension"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "child_process": "^1.0.2",
+    "fs": "0.0.1-security",
+    "path": "^0.12.7"
+  }
+} 

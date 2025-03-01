@@ -1,0 +1,84 @@
+{
+  "name": "cursor-console-viewer",
+  "displayName": "Cursor Console Viewer",
+  "description": "View browser console logs in Cursor IDE",
+  "version": "1.0.0",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:cursor-console-viewer.openConsoleViewer",
+    "onView:cursor-console-viewer"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "cursor-console-viewer.openConsoleViewer",
+        "title": "Open Browser Console Viewer"
+      },
+      {
+        "command": "cursor-console-viewer.connect",
+        "title": "Connect to Console Server"
+      },
+      {
+        "command": "cursor-console-viewer.disconnect",
+        "title": "Disconnect from Console Server"
+      },
+      {
+        "command": "cursor-console-viewer.clearLogs",
+        "title": "Clear Console Logs"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "cursor-console-viewer",
+          "title": "Browser Console",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "cursor-console-viewer": [
+        {
+          "id": "cursor-console-logs",
+          "name": "Console Logs"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Cursor Console Viewer",
+      "properties": {
+        "cursor-console-viewer.serverUrl": {
+          "type": "string",
+          "default": "ws://localhost:3000",
+          "description": "WebSocket server URL"
+        },
+        "cursor-console-viewer.autoConnect": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically connect to server on startup"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile": "webpack --mode development",
+    "watch": "webpack --mode development --watch"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.60.0",
+    "@types/node": "^16.11.7",
+    "webpack": "^5.76.0",
+    "webpack-cli": "^4.10.0"
+  },
+  "dependencies": {
+    "ws": "^8.14.2"
+  }
+} 
