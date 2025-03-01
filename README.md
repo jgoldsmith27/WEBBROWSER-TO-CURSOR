@@ -1,30 +1,20 @@
 # Browser Console Capture
 
-A browser extension that captures tab information and sends it to a server for monitoring and tracking purposes.
-
-## Components
-
-This project consists of two main components:
-
-1. **Browser Extension**: Captures tab information from the browser and sends it to the server
-2. **Server**: Receives tab information from the browser extension and provides an API for accessing it
+A browser extension that captures tab information and sends it to a server for display in Cursor IDE.
 
 ## Features
 
-- Real-time tab tracking with status indicators
-- WebSocket communication for instant updates
-- Simple UI with connection status indicator (green/red dot)
-- Tab information includes title, URL, and favicon
+- Captures open tabs from your browser
+- Sends tab information to a local server
+- Displays tab information in a user-friendly interface
+- Provides real-time connection status indicators
 
 ## Installation
 
-### Server Setup
+### Server
 
 1. Clone this repository
-2. Navigate to the server directory:
-   ```
-   cd cursor-console-server
-   ```
+2. Navigate to the project directory
 3. Install dependencies:
    ```
    npm install
@@ -33,23 +23,43 @@ This project consists of two main components:
    ```
    npm start
    ```
-   The server will run on http://localhost:3000
 
-### Browser Extension Setup
+### Browser Extension
 
-1. Open Chrome and go to `chrome://extensions/`
-2. Enable "Developer mode" (toggle in the top-right corner)
-3. Click "Load unpacked" and select the `browser-console-capture` directory
-4. Click the extension icon in your browser toolbar
-5. Enter the server URL (default: `ws://localhost:3000`) and click "Connect"
-6. The status indicator will turn green when connected
+1. Open your browser's extension management page
+   - Chrome: `chrome://extensions/`
+   - Firefox: `about:addons`
+2. Enable Developer Mode
+3. Click "Load unpacked" (Chrome) or "Load Temporary Add-on" (Firefox)
+4. Select the `browser-console-capture` directory from this repository
 
 ## Usage
 
-1. Connect the browser extension to the server
-2. The extension will automatically send tab information to the server
-3. You can manually send tab information by clicking the "Send Tabs" button
-4. The connection status is indicated by a green (connected) or red (disconnected) dot
+1. Start the server using `npm start`
+2. Click on the browser extension icon to open the popup
+3. Verify that the connection status shows "Connected"
+4. Use the "Send Tabs" button to manually send tab information to the server
+5. View your tabs in the web interface at `http://localhost:3000`
+
+## Configuration
+
+- Server port can be configured in `server.js`
+- Connection settings can be adjusted in the extension popup
+
+## Development
+
+This project consists of two main components:
+- A Node.js server that receives and displays tab information
+- A browser extension that captures tab data and sends it to the server
+
+### Project Structure
+
+- `/server.js` - The main server file
+- `/browser-console-capture/` - Browser extension files
+  - `manifest.json` - Extension configuration
+  - `background.js` - Background script for tab tracking
+  - `popup.html` - Extension popup UI
+  - `popup.js` - Popup functionality
 
 ## License
 
