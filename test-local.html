@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Local Console Logs</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Local Console Logs</h1>
+    <p>This page generates various console logs to test the Browser Console Capture extension.</p>
+    
+    <div>
+        <button onclick="logMessage()">Log Message</button>
+        <button onclick="logError()">Log Error</button>
+        <button onclick="logWarning()">Log Warning</button>
+        <button onclick="logInfo()">Log Info</button>
+        <button onclick="logDebug()">Log Debug</button>
+        <button onclick="logObject()">Log Object</button>
+        <button onclick="logArray()">Log Array</button>
+        <button onclick="logMultiple()">Log Multiple</button>
+        <button onclick="throwError()">Throw Error</button>
+    </div>
+    
+    <h2>Instructions:</h2>
+    <ol>
+        <li>Make sure the Browser Console Capture extension is installed and connected</li>
+        <li>Click the buttons above to generate different types of console logs</li>
+        <li>Check if the logs are being captured by the extension</li>
+    </ol>
+    
+    <script>
+        // Log a simple message when the page loads
+        console.log('Page loaded at', new Date().toLocaleTimeString());
+        
+        function logMessage() {
+            console.log('This is a test log message');
+        }
+        
+        function logError() {
+            console.error('This is a test error message');
+        }
+        
+        function logWarning() {
+            console.warn('This is a test warning message');
+        }
+        
+        function logInfo() {
+            console.info('This is a test info message');
+        }
+        
+        function logDebug() {
+            console.debug('This is a test debug message');
+        }
+        
+        function logObject() {
+            console.log('Logging an object:', { 
+                name: 'Test Object', 
+                properties: ['prop1', 'prop2', 'prop3'],
+                nested: {
+                    value: 42,
+                    active: true
+                }
+            });
+        }
+        
+        function logArray() {
+            console.log('Logging an array:', [1, 2, 3, 4, 5, 'string', true, { key: 'value' }]);
+        }
+        
+        function logMultiple() {
+            console.log('Multiple', 'arguments', 123, true, { key: 'value' });
+        }
+        
+        function throwError() {
+            try {
+                throw new Error('This is a test thrown error');
+            } catch (error) {
+                console.error('Caught error:', error);
+            }
+        }
+    </script>
+</body>
+</html> 

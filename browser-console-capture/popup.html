@@ -121,6 +121,16 @@
     input:checked + .toggle-slider:before {
       transform: translateX(20px);
     }
+    
+    .note {
+      background-color: #fff3cd;
+      border: 1px solid #ffeeba;
+      color: #856404;
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-bottom: 15px;
+    }
   </style>
 </head>
 <body>
@@ -129,6 +139,10 @@
   <div class="status-container">
     <div id="statusDot" class="status-dot"></div>
     <span id="connectionStatus">Disconnected</span>
+  </div>
+  
+  <div class="note">
+    <strong>Note:</strong> This extension only captures logs from locally hosted websites (localhost, 127.0.0.1, etc.)
   </div>
   
   <div class="form-group">
@@ -141,7 +155,7 @@
       <input type="checkbox" id="trackingModeToggle" checked>
       <span class="toggle-slider"></span>
     </label>
-    <span>Track All Tabs</span>
+    <span>Track All Local Tabs</span>
   </div>
   
   <button id="connectBtn" class="btn">Connect</button>

@@ -24,13 +24,12 @@ const originalConsole = {
 // Array to store captured logs
 let capturedLogs = [];
 
-// Tab tracking settings
+// Tab tracking settings - initialize with default values
 let trackingMode = 'all'; // 'all' or 'selected'
 let isTabTracked = true;  // Whether this specific tab is tracked
 let currentTabId = null;  // Store the current tab ID
-
-// Flag to control capturing
-let isCapturing = true;
+let isCapturing = true;   // Flag to control capturing
+let settingsLoaded = false; // Flag to track if settings have been loaded
 
 // Tab navigation history
 let navigationHistory = [];
@@ -54,12 +53,37 @@ function getStackTrace() {
 // Function to check if this tab should be captured
 function shouldCaptureTab() {
   // If capturing is disabled globally, don't capture
-  if (!isCapturing) return false;
+  if (!isCapturing) {
+    originalConsole.log('[DEBUG] Not capturing because global capturing is disabled');
+    return false;
+  }
+  
+  // Only capture locally hosted websites
+  try {
+    const url = window.location.href;
+    const parsedUrl = new URL(url);
+    const isLocalUrl = parsedUrl.hostname === 'localhost' || 
+                       parsedUrl.hostname === '127.0.0.1' || 
+                       parsedUrl.hostname.endsWith('.local') ||
+                       parsedUrl.hostname.endsWith('.localhost');
+    
+    if (!isLocalUrl) {
+      originalConsole.log('[DEBUG] Not capturing because this is not a locally hosted website:', parsedUrl.hostname);
+      return false;
+    }
+  } catch (e) {
+    originalConsole.log('[DEBUG] Error parsing URL:', e);
+    return false;
+  }
   
   // If tracking mode is 'all', capture all tabs
-  if (trackingMode === 'all') return true;
+  if (trackingMode === 'all') {
+    originalConsole.log('[DEBUG] Capturing because tracking mode is "all"');
+    return true;
+  }
   
   // If tracking mode is 'selected', only capture if this tab is tracked
+  originalConsole.log('[DEBUG] Tracking mode is "selected", isTabTracked =', isTabTracked);
   return isTabTracked;
 }
 
@@ -90,7 +114,7 @@ function recordNavigation(url) {
 function captureConsole(type, args) {
   // Skip if this tab should not be captured
   if (!shouldCaptureTab()) {
-    originalConsole.log('[DEBUG] Skipping capture for this tab - not tracked');
+    originalConsole.log('[DEBUG] Skipping capture for this tab - not tracked, URL =', window.location.href);
     return;
   }
   
@@ -100,31 +124,30 @@ function captureConsole(type, args) {
   const timestamp = getTimestamp();
   const stackTrace = getStackTrace();
   
-  // Convert arguments to array and handle circular references
-  const serializedArgs = Array.from(args).map(arg => {
+  // Convert arguments to serializable format
+  const serializedArgs = [];
+  for (let i = 0; i < args.length; i++) {
     try {
-      if (typeof arg === 'object' && arg !== null) {
-        if (arg instanceof Error) {
-          // Special handling for Error objects
-          return `${arg.name}: ${arg.message}\n${arg.stack || ''}`;
+      if (args[i] === undefined) {
+        serializedArgs.push('undefined');
+      } else if (args[i] === null) {
+        serializedArgs.push('null');
+      } else if (typeof args[i] === 'function') {
+        serializedArgs.push(`function ${args[i].name || 'anonymous'}() {...}`);
+      } else if (typeof args[i] === 'object') {
+        try {
+          serializedArgs.push(JSON.stringify(args[i]));
+        } catch (e) {
+          serializedArgs.push(`[Object ${args[i].constructor.name}]`);
         }
-        return JSON.stringify(arg, (key, value) => {
-          if (value instanceof Error) {
-            return {
-              name: value.name,
-              message: value.message,
-              stack: value.stack
-            };
-          }
-          return value;
-        }, 2);
+      } else {
+        serializedArgs.push(String(args[i]));
       }
-      return String(arg);
     } catch (e) {
-      return `[Object with circular reference or non-serializable content]`;
+      serializedArgs.push(`[Error serializing argument: ${e.message}]`);
     }
-  });
-
+  }
+  
   // Create log entry
   const logEntry = {
     type,
@@ -132,30 +155,45 @@ function captureConsole(type, args) {
     message: serializedArgs.join(' '),
     stackTrace,
     url: window.location.href,
-    tabId: currentTabId,
-    navigationHistory: navigationHistory.slice(0, 3) // Include recent navigation history
+    tabId: currentTabId
   };
-
-  // Add to captured logs
-  capturedLogs.push(logEntry);
   
   // Debug: Log that we captured something
-  originalConsole.log('[DEBUG] Captured a', type, 'message:', serializedArgs.join(' ').substring(0, 50) + (serializedArgs.join(' ').length > 50 ? '...' : ''));
+  originalConsole.log('[DEBUG] Captured a', type, 'message:', serializedArgs.join(' ').substring(0, 50) + (serializedArgs.join(' ').length > 50 ? '...' : ''), 'URL =', window.location.href);
   
-  // Send to background script
+  // Send to background script with retry mechanism
+  sendLogToBackground(logEntry);
+}
+
+// Function to send log to background script with retry
+function sendLogToBackground(logEntry, retryCount = 0) {
+  const maxRetries = 3;
+  
+  originalConsole.log('[DEBUG] Attempting to send log to background script, URL =', window.location.href, 'type =', logEntry.type);
+  
   chrome.runtime.sendMessage({
     action: 'capturedLog',
     log: logEntry
   }, response => {
     if (chrome.runtime.lastError) {
-      originalConsole.error('[DEBUG] Error sending log to background script:', chrome.runtime.lastError);
+      originalConsole.error('[DEBUG] Error sending log to background script:', chrome.runtime.lastError, 'URL =', window.location.href);
+      
+      // Retry a few times with exponential backoff
+      if (retryCount < maxRetries) {
+        originalConsole.log('[DEBUG] Retrying send log, attempt', retryCount + 1, 'of', maxRetries);
+        setTimeout(() => {
+          sendLogToBackground(logEntry, retryCount + 1);
+        }, Math.pow(2, retryCount) * 500); // 500ms, 1s, 2s
+      }
     } else if (response && response.success) {
-      originalConsole.log('[DEBUG] Successfully sent log to background script');
+      originalConsole.log('[DEBUG] Successfully sent log to background script, URL =', window.location.href);
+    } else {
+      originalConsole.error('[DEBUG] Received unsuccessful response from background script:', response);
     }
   });
 }
 
-// Override console methods
+// Override console methods immediately to ensure we capture everything
 console.log = function() {
   captureConsole('log', arguments);
   originalConsole.log.apply(console, arguments);
@@ -251,33 +289,104 @@ console.clear = function() {
   originalConsole.clear.apply(console, arguments);
 };
 
-// Load tab tracking settings
+// Function to load tab tracking settings
 function loadTabTrackingSettings() {
+  // If we've already tried to load settings, don't show the error again
+  const showError = !settingsLoaded;
+  
+  originalConsole.log('[DEBUG] Loading tab tracking settings, current URL:', window.location.href);
+  
+  // Set a timeout for the message
+  const messageTimeout = setTimeout(() => {
+    if (showError) {
+      originalConsole.error('[DEBUG] Failed to fetch tab tracking settings: Timeout');
+    }
+    // Use default settings as fallback if not already set
+    if (!settingsLoaded) {
+      currentTabId = currentTabId || -1;
+      trackingMode = 'all';
+      isCapturing = true;
+      isTabTracked = true;
+      settingsLoaded = true; // Mark as loaded with defaults
+      originalConsole.log('[DEBUG] Using default settings due to timeout: trackingMode =', trackingMode, 'isTabTracked =', isTabTracked);
+    }
+  }, 3000); // 3 second timeout
+  
   // First get the current tab ID
   chrome.runtime.sendMessage({ action: 'getCurrentTabId' }, (response) => {
+    clearTimeout(messageTimeout);
+    
+    if (chrome.runtime.lastError) {
+      if (showError) {
+        originalConsole.error('[DEBUG] Error getting tab ID:', chrome.runtime.lastError);
+      }
+      // Use default settings as fallback if not already set
+      if (!settingsLoaded) {
+        currentTabId = currentTabId || -1;
+        trackingMode = 'all';
+        isCapturing = true;
+        isTabTracked = true;
+        settingsLoaded = true; // Mark as loaded with defaults
+        originalConsole.log('[DEBUG] Using default settings due to error: trackingMode =', trackingMode, 'isTabTracked =', isTabTracked);
+      }
+      return;
+    }
+    
     if (response && response.tabId) {
       currentTabId = response.tabId;
+      originalConsole.log('[DEBUG] Got tab ID:', currentTabId);
       
       // Now get the tracking settings
       chrome.storage.local.get(['trackingMode', 'trackedTabs', 'isCapturing'], (result) => {
+        if (chrome.runtime.lastError) {
+          if (showError) {
+            originalConsole.error('[DEBUG] Error getting storage:', chrome.runtime.lastError);
+          }
+          // Use default settings as fallback if not already set
+          if (!settingsLoaded) {
+            trackingMode = 'all';
+            isCapturing = true;
+            isTabTracked = true;
+            settingsLoaded = true; // Mark as loaded with defaults
+            originalConsole.log('[DEBUG] Using default settings due to storage error: trackingMode =', trackingMode, 'isTabTracked =', isTabTracked);
+          }
+          return;
+        }
+        
         trackingMode = result.trackingMode || 'all';
         isCapturing = result.isCapturing !== false;
         
         // Check if this tab is tracked
         if (result.trackedTabs && currentTabId) {
           isTabTracked = result.trackedTabs[currentTabId] !== false;
+          originalConsole.log('[DEBUG] Tab tracking status from storage:', result.trackedTabs[currentTabId]);
         } else {
           isTabTracked = true;
+          originalConsole.log('[DEBUG] No specific tracking status for this tab, defaulting to tracked');
         }
+        
+        settingsLoaded = true; // Mark as successfully loaded
         
         originalConsole.log('[DEBUG] Tab tracking settings loaded:', 
           'mode =', trackingMode, 
           'tabId =', currentTabId,
           'isTracked =', isTabTracked,
-          'isCapturing =', isCapturing);
+          'isCapturing =', isCapturing,
+          'URL =', window.location.href);
       });
     } else {
-      originalConsole.error('[DEBUG] Could not get current tab ID');
+      if (showError) {
+        originalConsole.error('[DEBUG] Could not get current tab ID');
+      }
+      // Use default settings as fallback if not already set
+      if (!settingsLoaded) {
+        currentTabId = currentTabId || -1;
+        trackingMode = 'all';
+        isCapturing = true;
+        isTabTracked = true;
+        settingsLoaded = true; // Mark as loaded with defaults
+        originalConsole.log('[DEBUG] Using default settings due to missing tab ID: trackingMode =', trackingMode, 'isTabTracked =', isTabTracked);
+      }
     }
   });
 }
@@ -372,8 +481,8 @@ window.addEventListener('hashchange', function() {
 // Load tab tracking settings when content script is loaded
 loadTabTrackingSettings();
 
-// Periodically check tab tracking settings (every 10 seconds)
-setInterval(loadTabTrackingSettings, 10000);
+// Periodically check tab tracking settings (every 30 seconds)
+setInterval(loadTabTrackingSettings, 30000);
 
 // Notify that the content script is loaded
 console.log('%c[Browser Console Capture] Content script loaded and capturing console logs', 'color: #4CAF50; font-weight: bold');

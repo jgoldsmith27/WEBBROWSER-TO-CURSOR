@@ -76,126 +76,216 @@ function generateClientId() {
   return 'browser-' + Math.random().toString(36).substring(2, 15);
 }
 
-// Connect to the WebSocket server
-function connectToServer() {
-  console.log('Connecting to server:', currentServerUrl);
-  
-  try {
-    // Close existing socket if any
-    if (webSocket) {
-      webSocket.close();
-    }
-    
-    // Create new WebSocket connection
-    webSocket = new WebSocket(currentServerUrl + '?clientType=browser');
-    
-    // Connection opened
-    webSocket.addEventListener('open', (event) => {
-      console.log('Connected to server');
-      isConnected = true;
-      reconnectAttempts = 0;
-      
-      // Wait for handshake request from server
-      // The server will initiate the handshake
-    });
-    
-    // Listen for messages
-    webSocket.addEventListener('message', (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        console.log('Received message from server:', message.type);
-        
-        // Handle handshake request
-        if (message.type === 'handshake_request') {
-          console.log('Received handshake request from server');
-          
-          // Send handshake response
-          const handshakeResponse = {
-            type: 'handshake_response',
-            clientId: clientId,
-            clientVersion: '1.0',
-            timestamp: new Date().toISOString(),
-            capabilities: {
-              logCapture: true,
-              tabTracking: true
-            }
-          };
-          
-          sendToServer(handshakeResponse);
-          console.log('Sent handshake response to server');
-          handshakeComplete = true;
-        }
-        // Handle test log request
-        else if (message.type === 'test_log_request') {
-          console.log('Received test log request from server');
-          
-          // Send a test log
-          const testLog = {
-            type: 'console_log',
-            data: {
-              type: 'log',
-              timestamp: new Date().toISOString(),
-              message: 'Test log from browser extension',
-              stackTrace: 'Test stack trace',
-              url: 'browser-extension://test',
-              tabId: -1
-            }
-          };
-          
-          sendToServer(testLog);
-          
-          // Send test log response
-          const testLogResponse = {
-            type: 'test_log_response',
-            requestId: message.requestId,
-            success: true
-          };
-          
-          sendToServer(testLogResponse);
-          console.log('Sent test log and response to server');
-        }
-        // Handle request_tabs
-        else if (message.type === 'request_tabs') {
-          console.log('Received request for tabs');
-          sendTabs();
-        }
-      } catch (error) {
-        console.error('Error processing message:', error);
-      }
-    });
-    
-    // Connection closed
-    webSocket.addEventListener('close', (event) => {
-      console.log('Connection closed:', event.code, event.reason);
-      isConnected = false;
-      handshakeComplete = false;
-      
-      // Attempt to reconnect
-      if (reconnectAttempts < maxReconnectAttempts) {
-        reconnectAttempts++;
-        console.log(`Reconnecting (attempt ${reconnectAttempts}/${maxReconnectAttempts})...`);
-        
-        if (reconnectTimer) {
-          clearTimeout(reconnectTimer);
-        }
-        
-        reconnectTimer = setTimeout(connectToServer, reconnectInterval);
-      } else {
-        console.error('Max reconnect attempts reached. Giving up.');
-      }
-      
-      // Update connection status
-      updateConnectionStatus();
-    });
-    
-    // Connection error
-    webSocket.addEventListener('error', (error) => {
-      console.error('WebSocket error:', error);
-    });
-    
-  } catch (error) {
-    console.error('Error connecting to server:', error);
+// Initialize client ID
+const clientId = generateClientId();
+
+// Initialize handshake status
+let handshakeComplete = false;
+
+// Cache for tab IDs to avoid repeated queries
+let tabIdCache = {};
+
+// Function to get tab ID for a sender
+function getTabIdForSender(sender) {
+  if (sender.tab && sender.tab.id) {
+    return Promise.resolve(sender.tab.id);
   }
+  
+  // Try to find the tab by URL if available
+  if (sender.url) {
+    return new Promise((resolve) => {
+      chrome.tabs.query({}, (tabs) => {
+        const matchingTab = tabs.find(tab => tab.url === sender.url);
+        if (matchingTab) {
+          // Cache the result
+          tabIdCache[sender.url] = matchingTab.id;
+          resolve(matchingTab.id);
+        } else {
+          // Get active tab as fallback
+          chrome.tabs.query({active: true, currentWindow: true}, (activeTabs) => {
+            if (activeTabs && activeTabs.length > 0) {
+              resolve(activeTabs[0].id);
+            } else {
+              resolve(null);
+            }
+          });
+        }
+      });
+    });
+  }
+  
+  // Get active tab as fallback
+  return new Promise((resolve) => {
+    chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+      if (tabs && tabs.length > 0) {
+        resolve(tabs[0].id);
+      } else {
+        resolve(null);
+      }
+    });
+  });
+}
+
+// Connect to the WebSocket server
+function connectToServer(serverUrl) {
+  // Set the current server URL if provided
+  if (serverUrl) {
+    currentServerUrl = serverUrl;
+  }
+  
+  // If no server URL is set, we can't connect
+  if (!currentServerUrl) {
+    console.error('Cannot connect: No server URL provided');
+    return Promise.reject(new Error('No server URL provided'));
+  }
+  
+  console.log('Connecting to server:', currentServerUrl);
+  connectionInProgress = true;
+  
+  return new Promise((resolve, reject) => {
+    try {
+      // Close existing socket if any
+      if (webSocket) {
+        webSocket.close();
+      }
+      
+      // Create new WebSocket connection
+      webSocket = new WebSocket(currentServerUrl + '?clientType=browser');
+      
+      // Connection opened
+      webSocket.addEventListener('open', (event) => {
+        console.log('Connected to server');
+        isConnected = true;
+        reconnectAttempts = 0;
+        connectionInProgress = false;
+        
+        // Update connection status
+        chrome.storage.local.set({ isConnected: true });
+        
+        // Start ping interval
+        startPingInterval();
+        
+        // Resolve the promise
+        resolve();
+        
+        // Wait for handshake request from server
+        // The server will initiate the handshake
+      });
+      
+      // Listen for messages
+      webSocket.addEventListener('message', (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          console.log('Received message from server:', message.type);
+          
+          // Handle handshake request
+          if (message.type === 'handshake_request') {
+            console.log('Received handshake request from server');
+            
+            // Send handshake response
+            const handshakeResponse = {
+              type: 'handshake_response',
+              clientId: clientId,
+              clientVersion: '1.0',
+              timestamp: new Date().toISOString(),
+              capabilities: {
+                logCapture: true,
+                tabTracking: true
+              }
+            };
+            
+            sendToServer(handshakeResponse);
+            console.log('Sent handshake response to server');
+            handshakeComplete = true;
+          }
+          // Handle test log request
+          else if (message.type === 'test_log_request') {
+            console.log('Received test log request from server');
+            
+            // Send a test log
+            const testLog = {
+              type: 'console_log',
+              data: {
+                type: 'log',
+                timestamp: new Date().toISOString(),
+                message: 'Test log from browser extension',
+                stackTrace: 'Test stack trace',
+                url: 'browser-extension://test',
+                tabId: -1
+              }
+            };
+            
+            sendToServer(testLog);
+            
+            // Send test log response
+            const testLogResponse = {
+              type: 'test_log_response',
+              requestId: message.requestId,
+              success: true
+            };
+            
+            sendToServer(testLogResponse);
+            console.log('Sent test log and response to server');
+          }
+          // Handle request_tabs
+          else if (message.type === 'request_tabs') {
+            console.log('Received request for tabs');
+            sendTabs();
+          }
+        } catch (error) {
+          console.error('Error processing message:', error);
+        }
+      });
+      
+      // Connection closed
+      webSocket.addEventListener('close', (event) => {
+        console.log('Connection closed:', event.code, event.reason);
+        isConnected = false;
+        handshakeComplete = false;
+        connectionInProgress = false;
+        
+        // Attempt to reconnect
+        if (reconnectAttempts < maxReconnectAttempts) {
+          reconnectAttempts++;
+          console.log(`Reconnecting (attempt ${reconnectAttempts}/${maxReconnectAttempts})...`);
+          
+          if (reconnectTimer) {
+            clearTimeout(reconnectTimer);
+          }
+          
+          reconnectTimer = setTimeout(() => {
+            getServerUrl().then(serverUrl => {
+              connectToServer(serverUrl);
+            });
+          }, reconnectInterval);
+        } else {
+          console.error('Max reconnect attempts reached. Giving up.');
+        }
+        
+        // Update connection status
+        chrome.storage.local.set({ isConnected: false });
+        
+        // Reject the promise if this is the initial connection attempt
+        if (connectionInProgress) {
+          reject(new Error(`Connection closed: ${event.code} ${event.reason}`));
+        }
+      });
+      
+      // Connection error
+      webSocket.addEventListener('error', (error) => {
+        console.error('WebSocket error:', error);
+        connectionInProgress = false;
+        
+        // Reject the promise
+        reject(error);
+      });
+      
+    } catch (error) {
+      console.error('Error connecting to server:', error);
+      connectionInProgress = false;
+      reject(error);
+    }
+  });
 }
 
 // Send message to server
@@ -263,10 +353,35 @@ function sendLogToServer(log) {
     try {
       // Check if this tab should be tracked
       const tabId = log.tabId;
+      const url = log.url;
+      
+      // Only track locally hosted websites
+      let isLocalUrl = false;
+      
+      if (url) {
+        try {
+          const parsedUrl = new URL(url);
+          isLocalUrl = parsedUrl.hostname === 'localhost' || 
+                       parsedUrl.hostname === '127.0.0.1' || 
+                       parsedUrl.hostname.endsWith('.local') ||
+                       parsedUrl.hostname.endsWith('.localhost');
+        } catch (e) {
+          // Invalid URL, skip
+          console.log('[BACKGROUND] Skipping log with invalid URL:', url);
+          return false;
+        }
+      }
+      
+      // Skip logs from non-local URLs
+      if (!isLocalUrl) {
+        console.log('[BACKGROUND] Skipping log from non-local URL:', url);
+        return false;
+      }
       
       // If tracking mode is 'selected' and this tab is not tracked, don't send the log
       if (trackingMode === 'selected' && tabId && trackedTabs[tabId] === false) {
         debugLog('Skipping log from untracked tab:', tabId);
+        console.log('[BACKGROUND] Skipping log from untracked tab:', tabId, 'URL =', log.url);
         return false;
       }
       
@@ -276,15 +391,17 @@ function sendLogToServer(log) {
       });
       
       debugLog('Sending log to server:', message.substring(0, 100) + (message.length > 100 ? '...' : ''));
+      console.log('[BACKGROUND] Sending log to server, URL =', log.url, 'Type =', log.type);
       webSocket.send(message);
       return true;
     } catch (error) {
-      console.error('Error sending log to server:', error);
+      console.error('[BACKGROUND] Error sending log to server:', error, 'URL =', log.url);
       pendingLogs.push(log);
       return false;
     }
   } else {
     debugLog('Not connected to server, adding log to pending logs');
+    console.log('[BACKGROUND] Not connected to server, adding log to pending logs, URL =', log.url);
     pendingLogs.push(log);
     
     // Limit the number of pending logs to prevent memory issues
@@ -305,8 +422,23 @@ function sendTabsToServer() {
   
   chrome.tabs.query({}, (tabs) => {
     try {
+      // Filter tabs to only include locally hosted websites
+      const localTabs = tabs.filter(tab => {
+        if (!tab.url) return false;
+        
+        try {
+          const url = new URL(tab.url);
+          return url.hostname === 'localhost' || 
+                 url.hostname === '127.0.0.1' || 
+                 url.hostname.endsWith('.local') ||
+                 url.hostname.endsWith('.localhost');
+        } catch (e) {
+          return false; // Invalid URL
+        }
+      });
+      
       // Format tabs to include only necessary information
-      const formattedTabs = tabs.map(tab => ({
+      const formattedTabs = localTabs.map(tab => ({
         id: tab.id,
         title: tab.title || 'Untitled Tab',
         url: tab.url || '',
@@ -314,7 +446,7 @@ function sendTabsToServer() {
         isTracked: trackingMode === 'all' || trackedTabs[tab.id] !== false
       }));
       
-      debugLog('Sending tabs to server:', formattedTabs.length, 'tabs');
+      debugLog('Sending local tabs to server:', formattedTabs.length, 'tabs');
       
       const message = {
         type: 'tabs_update',
@@ -400,7 +532,16 @@ function disconnectFromServer() {
 
 // Listen for messages from content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  debugLog('Received message from content script:', message.action);
+  
   if (message.action === 'capturedLog') {
+    // Log more details about the captured log
+    console.log('[BACKGROUND] Received log from content script:', 
+      'URL =', message.log.url, 
+      'Type =', message.log.type,
+      'TabId =', message.log.tabId,
+      'Sender Tab ID =', sender.tab ? sender.tab.id : 'unknown');
+    
     // Store log in local storage
     chrome.storage.local.get(['logs'], (result) => {
       const logs = result.logs || [];
@@ -417,12 +558,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Add tab ID to the log if not already present
     if (!message.log.tabId && sender.tab) {
       message.log.tabId = sender.tab.id;
+      console.log('[BACKGROUND] Added tab ID to log:', sender.tab.id);
     }
     
     // Send log to server
-    sendLogToServer(message.log);
+    const sent = sendLogToServer(message.log);
+    console.log('[BACKGROUND] Sent log to server:', sent ? 'success' : 'failed');
     
     sendResponse({ success: true });
+    return true; // Required for async response
   } else if (message.action === 'connect') {
     connectToServer()
       .then(() => {
@@ -443,7 +587,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // Indicates async response
   } else if (message.action === 'getConnectionStatus') {
     sendResponse({ isConnected });
-    return false; // Synchronous response
+    return true; // Required for async response
   } else if (message.action === 'getFilterSettings') {
     chrome.storage.local.get(['domainFilterMode', 'domainFilterList'], (result) => {
       sendResponse({
@@ -454,26 +598,58 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // Required for async response
   } else if (message.action === 'getCurrentTabId') {
     // Return the tab ID of the sender
+    debugLog('Received getCurrentTabId request from content script');
+    console.log('[BACKGROUND] Received getCurrentTabId request from content script, sender URL =', sender.url);
+    
+    // First check if we have the tab ID directly from sender
     if (sender.tab && sender.tab.id) {
+      debugLog('Returning tab ID from sender:', sender.tab.id);
+      console.log('[BACKGROUND] Returning tab ID from sender:', sender.tab.id, 'URL =', sender.tab ? sender.tab.url : 'unknown');
       sendResponse({ tabId: sender.tab.id });
-    } else {
-      sendResponse({ tabId: null });
+      return true;
     }
-    return false; // Synchronous response
+    
+    // Check if we have a cached tab ID for this URL
+    if (sender.url && tabIdCache[sender.url]) {
+      debugLog('Returning cached tab ID for URL:', tabIdCache[sender.url]);
+      console.log('[BACKGROUND] Returning cached tab ID for URL:', tabIdCache[sender.url], 'URL =', sender.url);
+      sendResponse({ tabId: tabIdCache[sender.url] });
+      return true;
+    }
+    
+    // Otherwise, we need to look it up
+    debugLog('Looking up tab ID for sender');
+    console.log('[BACKGROUND] Looking up tab ID for sender, URL =', sender.url);
+    getTabIdForSender(sender).then(tabId => {
+      debugLog('Found tab ID:', tabId);
+      console.log('[BACKGROUND] Found tab ID:', tabId, 'for URL =', sender.url);
+      sendResponse({ tabId: tabId });
+    }).catch(error => {
+      debugLog('Error getting tab ID:', error);
+      console.error('[BACKGROUND] Error getting tab ID:', error, 'for URL =', sender.url);
+      sendResponse({ tabId: null });
+    });
+    
+    return true; // Required for async response
   } else if (message.action === 'navigationEvent') {
     // Store navigation event
     const tabId = sender.tab ? sender.tab.id : null;
     if (tabId) {
       debugLog('Navigation event in tab', tabId, ':', message.url);
+      
+      // Update the tab ID cache
+      if (message.url) {
+        tabIdCache[message.url] = tabId;
+      }
     }
     sendResponse({ success: true });
-    return false; // Synchronous response
+    return true; // Required for async response
   } else if (message.action === 'checkConnection') {
     // Check if we're connected and reconnect if not
     if (!isConnected && !connectionInProgress && !reconnectTimer) {
       debugLog('Connection check requested, reconnecting...');
       getServerUrl().then(serverUrl => {
-        connectToServer();
+        connectToServer(serverUrl);
       });
     }
     
@@ -615,7 +791,7 @@ chrome.runtime.onStartup.addListener(() => {
   // Connect to server using the appropriate URL
   setTimeout(() => {
     getServerUrl().then(serverUrl => {
-      connectToServer();
+      connectToServer(serverUrl);
     });
   }, 2000); // Delay connection to ensure browser is fully started
 });
@@ -625,7 +801,7 @@ setInterval(() => {
   if (!isConnected && !connectionInProgress && !reconnectTimer && reconnectAttempts < maxReconnectAttempts) {
     debugLog('Periodic connection check, reconnecting...');
     getServerUrl().then(serverUrl => {
-      connectToServer();
+      connectToServer(serverUrl);
     });
   }
 }, 60000); // Check every minute
@@ -635,12 +811,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Received message:', message);
   
   if (message.action === 'connect') {
-    connectToServer()
-      .then(() => {
-        sendResponse({ success: true });
-      })
-      .catch((error) => {
-        sendResponse({ success: false, error: error.message });
+    // If a server URL is provided in the message, use that
+    const serverUrl = message.serverUrl || null;
+    
+    // Get the server URL if not provided
+    (serverUrl ? Promise.resolve(serverUrl) : getServerUrl())
+      .then(url => {
+        connectToServer(url)
+          .then(() => {
+            sendResponse({ success: true });
+          })
+          .catch((error) => {
+            sendResponse({ success: false, error: error.message });
+          });
       });
     return true;
   } else if (message.action === 'disconnect') {
@@ -676,7 +859,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     
     // Get server URL and connect
     getServerUrl().then(serverUrl => {
-      connectToServer();
+      connectToServer(serverUrl);
     });
     
     return true; // Async response
@@ -743,7 +926,7 @@ function forceReconnect() {
   // Get server URL and connect
   return getServerUrl().then(serverUrl => {
     debugLog('Force reconnecting to:', serverUrl);
-    return connectToServer();
+    return connectToServer(serverUrl);
   }).catch(error => {
     debugLog('Force reconnect failed:', error.message);
     throw error;

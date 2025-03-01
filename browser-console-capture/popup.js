@@ -213,22 +213,25 @@ function updateConnectionStatus(isConnected, statusText) {
 
 // Update debug info
 function updateDebugInfo() {
-  chrome.runtime.sendMessage({ action: 'getDebugInfo' }, (response) => {
+  chrome.runtime.sendMessage({ action: 'checkConnection' }, (response) => {
     if (response) {
-      const debugInfo = document.getElementById('debugInfo');
-      if (debugInfo) {
-        const timestamp = new Date().toISOString();
-        let info = `[${timestamp}] Debug Info:\n`;
-        info += `Connected: ${response.isConnected}\n`;
-        info += `WebSocket State: ${getWebSocketStateName(response.webSocketState)}\n`;
-        info += `Server URL: ${response.serverUrl}\n`;
-        info += `Reconnect Attempts: ${response.reconnectAttempts}/${response.maxReconnectAttempts}\n`;
-        info += `Tracking Mode: ${response.trackingMode}\n`;
-        info += `Debug Mode: ${response.debugMode}\n`;
-        info += `Pending Logs: ${response.pendingLogs}\n`;
+      // Get tracking settings
+      chrome.storage.local.get(['trackingMode', 'trackedTabs', 'isCapturing'], (result) => {
+        const debugText = `
+Connection Status: ${response.isConnected ? 'Connected' : 'Disconnected'}
+Connection In Progress: ${response.connectionInProgress ? 'Yes' : 'No'}
+Reconnect Attempts: ${response.reconnectAttempts}
+WebSocket State: ${response.wsStateText} (${response.wsState})
+Server URL: ${response.serverUrl || 'Not set'}
+Tracking Mode: ${result.trackingMode || 'all'} (only local websites)
+Is Capturing: ${result.isCapturing !== false ? 'Yes' : 'No'}
+Tracked Local Tabs: ${JSON.stringify(result.trackedTabs || {})}
+        `;
         
-        debugInfo.textContent = info + debugInfo.textContent;
-      }
+        debugInfo.textContent = debugText;
+      });
+    } else {
+      debugInfo.textContent = 'Failed to get connection status';
     }
   });
 }
